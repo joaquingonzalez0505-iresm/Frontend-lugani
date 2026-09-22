@@ -1,0 +1,20 @@
+====================================================================
+RESPUESTA A LAS PREGUNTAS TÉCNICAS DEL PROYECTO
+====================================================================
+
+1. ¿Qué pasaría con tu catálogo si el backend no estuviera corriendo en este momento?
+--------------------------------------------------------------------
+Si el backend Python no estuviera corriendo:
+- La petición `fetch('/api/productos')` fallaría al intentar conectarse al servidor (retornando una falla de red como `ERR_CONNECTION_REFUSED` o un error `504 Gateway Timeout` por parte del proxy de Vite).
+- En el código JavaScript, la promesa de `fetch` sería rechazada o el bloque `if (!response.ok)` capturaría el fallo de comunicación HTTP.
+- Gracias al bloque `try...catch` implementado en `Catalog.jsx`, el error es capturado limpiamente sin romper la aplicación. El estado de la lista de productos `productos` se mantendría vacío (`[]`) y en pantalla se mostraría un mensaje descriptivo indicando al usuario que no se pudo establecer conexión con el backend.
+
+2. ¿Cómo te diste cuenta de qué estaba fallando?
+--------------------------------------------------------------------
+Para identificar y diagnosticar el fallo:
+1. Pestaña Red (Network) de las DevTools del navegador:
+   - Al filtrar por `Fetch/XHR`, la solicitud a `/api/productos` aparecería marcada en rojo con un código de estado como `500`, `502`, `504` o estado `(failed) net::ERR_CONNECTION_REFUSED`.
+2. Consola de Desarrollador (Console tab):
+   - Aparece un mensaje de error como `Fetch API cannot load http://127.0.0.1:8000/api/productos` o el `console.error` capturado en nuestro servicio `api.js` / `Catalog.jsx`.
+3. Terminal donde corre Vite:
+   - Vite imprime advertencias del proxy como `[vite] http proxy error at /api/productos: ECONNREFUSED 127.0.0.1:8000`, lo cual confirma explícitamente que Vite no pudo reenviar la petición porque no hay nada escuchando en el puerto 8000.
