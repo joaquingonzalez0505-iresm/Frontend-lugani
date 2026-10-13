@@ -25,36 +25,39 @@ export default function CarritoDrawer() {
       return;
     }
 
+    // Obtener token guardado
+    const token = localStorage.getItem("token") || user?.token || user?.access_token;
+
+    // Construcción del objeto pedido con producto_id e identificación del cliente
     const pedidoData = {
       nombre_cliente: user?.nombre || "Cliente Web",
-
       items: carrito.map((item) => ({
+        id: item.id,
+        producto_id: item.id,
         nombre: item.nombre,
-        precio_final: parseFloat(
-          item.precio_final || item.precio || 0
-        ),
+        precio_final: parseFloat(item.precio_final || item.precio || 0),
         cantidad: parseInt(item.cantidad || 1),
       })),
-
       total: parseFloat(totalPrecio || 0),
     };
 
     try {
-      const response = await fetch(
-        `${API_URL}/pedidos/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(pedidoData),
-        }
-      );
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/pedidos/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(pedidoData),
+      });
 
       if (response.ok) {
-        alert(
-          "🎉 ¡Pedido registrado y guardado en la Base de Datos!"
-        );
+        alert("🎉 ¡Pedido registrado y guardado en la Base de Datos!");
 
         if (vaciarCarrito) {
           vaciarCarrito();
@@ -64,26 +67,17 @@ export default function CarritoDrawer() {
       } else {
         const errorData = await response.json();
 
-        console.error(
-          "Error del backend:",
-          errorData
-        );
+        console.error("Error del backend:", errorData);
 
         alert(
           "Error al procesar la compra: " +
-          (errorData.detail ||
-            "Verificá los datos")
+          (errorData.detail || errorData.message || "Verificá los datos")
         );
       }
     } catch (error) {
-      console.error(
-        "Error de conexión:",
-        error
-      );
+      console.error("Error de conexión:", error);
 
-      alert(
-        "No se pudo conectar con el servidor."
-      );
+      alert("No se pudo conectar con el servidor.");
     }
   };
 
@@ -96,15 +90,11 @@ export default function CarritoDrawer() {
 
       <div style={styles.drawer}>
         <div style={styles.header}>
-          <h2 style={{ margin: 0 }}>
-            🛒 Tu Carrito
-          </h2>
+          <h2 style={{ margin: 0 }}>🛒 Tu Carrito</h2>
 
           <button
             type="button"
-            onClick={() =>
-              setMostrarModal(false)
-            }
+            onClick={() => setMostrarModal(false)}
             style={styles.closeBtn}
           >
             ✕
@@ -113,26 +103,17 @@ export default function CarritoDrawer() {
 
         <div style={styles.body}>
           {carrito.length === 0 ? (
-            <p style={styles.empty}>
-              El carrito está vacío.
-            </p>
+            <p style={styles.empty}>El carrito está vacío.</p>
           ) : (
             carrito.map((item) => (
-              <div
-                key={item.id}
-                style={styles.item}
-              >
+              <div key={item.id} style={styles.item}>
                 <div style={{ flex: 1 }}>
-                  <strong>
-                    {item.nombre}
-                  </strong>
+                  <strong>{item.nombre}</strong>
 
                   <div style={styles.price}>
                     $
                     {Number(
-                      item.precio_final ||
-                      item.precio ||
-                      0
+                      item.precio_final || item.precio || 0
                     ).toLocaleString("es-AR")}
                   </div>
                 </div>
@@ -140,29 +121,17 @@ export default function CarritoDrawer() {
                 <div style={styles.controls}>
                   <button
                     type="button"
-                    onClick={() =>
-                      cambiarCantidad(
-                        item.id,
-                        -1
-                      )
-                    }
+                    onClick={() => cambiarCantidad(item.id, -1)}
                     style={styles.quantityBtn}
                   >
                     -
                   </button>
 
-                  <span style={styles.quantity}>
-                    {item.cantidad}
-                  </span>
+                  <span style={styles.quantity}>{item.cantidad}</span>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      cambiarCantidad(
-                        item.id,
-                        1
-                      )
-                    }
+                    onClick={() => cambiarCantidad(item.id, 1)}
                     style={styles.quantityBtn}
                   >
                     +
@@ -170,11 +139,7 @@ export default function CarritoDrawer() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      eliminarDelCarrito(
-                        item.id
-                      )
-                    }
+                    onClick={() => eliminarDelCarrito(item.id)}
                     style={styles.deleteBtn}
                   >
                     🗑️
@@ -188,10 +153,7 @@ export default function CarritoDrawer() {
         {carrito.length > 0 && (
           <div style={styles.footer}>
             <h3 style={styles.total}>
-              Total: $
-              {Number(
-                totalPrecio
-              ).toLocaleString("es-AR")}
+              Total: ${Number(totalPrecio).toLocaleString("es-AR")}
             </h3>
 
             <button
@@ -232,14 +194,12 @@ const styles = {
     backgroundColor: "#fff",
     display: "flex",
     flexDirection: "column",
-    boxShadow:
-      "-8px 0 20px rgba(0,0,0,0.15)",
+    boxShadow: "-8px 0 20px rgba(0,0,0,0.15)",
   },
 
   header: {
     padding: "1rem",
-    borderBottom:
-      "1px solid #e2e8f0",
+    borderBottom: "1px solid #e2e8f0",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -270,8 +230,7 @@ const styles = {
     alignItems: "center",
     gap: "1rem",
     marginBottom: "1rem",
-    borderBottom:
-      "1px solid #f1f5f9",
+    borderBottom: "1px solid #f1f5f9",
     paddingBottom: "0.75rem",
   },
 
@@ -290,8 +249,7 @@ const styles = {
   quantityBtn: {
     width: "28px",
     height: "28px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     backgroundColor: "#fff",
     borderRadius: "6px",
     cursor: "pointer",
@@ -315,8 +273,7 @@ const styles = {
 
   footer: {
     padding: "1rem",
-    borderTop:
-      "1px solid #e2e8f0",
+    borderTop: "1px solid #e2e8f0",
     backgroundColor: "#f8fafc",
   },
 
