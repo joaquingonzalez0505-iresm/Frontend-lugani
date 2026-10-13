@@ -17,9 +17,7 @@ import {
 
 import { CarritoProvider } from "./context/CarritoContext";
 
-/* =========================================================
-   LOGIN / REGISTRO
-========================================================= */
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
 
 function LoginView() {
   const [esRegistro, setEsRegistro] = useState(false);
@@ -190,10 +188,6 @@ function LoginView() {
   );
 }
 
-/* =========================================================
-   CONTENIDO PRINCIPAL
-========================================================= */
-
 function MainContent() {
   const [mostrarModalProducto, setMostrarModalProducto] =
     useState(false);
@@ -215,7 +209,6 @@ function MainContent() {
   const handleCrearProducto = async (e) => {
     e.preventDefault();
 
-    // Verificación de administrador
     if (!user?.es_admin) {
       alert(
         "Tenés que iniciar sesión como Administrador para crear productos."
@@ -223,7 +216,6 @@ function MainContent() {
       return;
     }
 
-    // Obtener token
     const token =
       localStorage.getItem("token") ||
       user?.token ||
@@ -236,7 +228,6 @@ function MainContent() {
       return;
     }
 
-    // Validación básica
     if (!nuevoNombre.trim()) {
       alert("Ingresá un nombre para el producto.");
       return;
@@ -262,7 +253,7 @@ function MainContent() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/productos/",
+        `${API_URL}/productos/`,
         {
           method: "POST",
           headers: {
@@ -298,16 +289,13 @@ function MainContent() {
         "🎉 ¡Producto creado exitosamente!"
       );
 
-      // Limpiar formulario
       setNuevoNombre("");
       setNuevoPrecio("");
       setNuevaDesc("");
       setNuevaImg("");
 
-      // Cerrar modal
       setMostrarModalProducto(false);
 
-      // Actualizar catálogo
       window.location.reload();
     } catch (error) {
       console.error(
@@ -343,10 +331,6 @@ function MainContent() {
       </Routes>
 
       <CarritoDrawer />
-
-      {/* =====================================================
-          MODAL CREAR PRODUCTO
-      ===================================================== */}
 
       {mostrarModalProducto &&
         user?.es_admin && (
@@ -474,10 +458,6 @@ function MainContent() {
   );
 }
 
-/* =========================================================
-   APP
-========================================================= */
-
 export default function App() {
   return (
     <Router>
@@ -489,10 +469,6 @@ export default function App() {
     </Router>
   );
 }
-
-/* =========================================================
-   ESTILOS
-========================================================= */
 
 const styles = {
   loginContainer: {

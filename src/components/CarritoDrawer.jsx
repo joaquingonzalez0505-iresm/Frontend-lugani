@@ -2,6 +2,8 @@ import React from "react";
 import { useCarrito } from "../context/CarritoContext";
 import { useAuth } from "../context/AuthContext";
 
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
+
 export default function CarritoDrawer() {
   const {
     carrito,
@@ -23,7 +25,6 @@ export default function CarritoDrawer() {
       return;
     }
 
-    // Estructura requerida por PedidoRequest en main.py
     const pedidoData = {
       nombre_cliente: user?.nombre || "Cliente Web",
 
@@ -40,7 +41,7 @@ export default function CarritoDrawer() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/pedidos/",
+        `${API_URL}/pedidos/`,
         {
           method: "POST",
           headers: {
@@ -88,15 +89,12 @@ export default function CarritoDrawer() {
 
   return (
     <div style={styles.overlay}>
-      {/* Fondo oscuro */}
       <div
         style={styles.backdrop}
         onClick={() => setMostrarModal(false)}
       />
 
-      {/* Drawer */}
       <div style={styles.drawer}>
-        {/* Header */}
         <div style={styles.header}>
           <h2 style={{ margin: 0 }}>
             🛒 Tu Carrito
@@ -113,7 +111,6 @@ export default function CarritoDrawer() {
           </button>
         </div>
 
-        {/* Productos */}
         <div style={styles.body}>
           {carrito.length === 0 ? (
             <p style={styles.empty}>
@@ -188,7 +185,6 @@ export default function CarritoDrawer() {
           )}
         </div>
 
-        {/* Footer */}
         {carrito.length > 0 && (
           <div style={styles.footer}>
             <h3 style={styles.total}>

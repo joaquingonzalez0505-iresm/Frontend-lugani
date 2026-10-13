@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import ProductCard from "./ProductCard";
 
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
+
 export default function Catalog() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8000/productos/")
+    fetch(`${API_URL}/productos/`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Error en la respuesta del servidor");

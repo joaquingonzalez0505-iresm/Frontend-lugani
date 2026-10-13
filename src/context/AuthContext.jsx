@@ -4,6 +4,8 @@ import React, {
   useState,
 } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -14,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await fetch(
-        "http://localhost:8000/auth/login",
+        `${API_URL}/auth/login`,
         {
           method: "POST",
           headers: {
@@ -35,7 +37,6 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      // Guardar token para futuras peticiones
       if (data.access_token) {
         localStorage.setItem(
           "token",
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   ) => {
     try {
       const res = await fetch(
-        "http://localhost:8000/auth/register",
+        `${API_URL}/auth/register`,
         {
           method: "POST",
           headers: {
@@ -101,8 +102,6 @@ export const AuthProvider = ({ children }) => {
       const usuarioRegistrado =
         data.user || data;
 
-      // Si el registro devuelve token,
-      // también lo guardamos.
       if (data.access_token) {
         localStorage.setItem(
           "token",

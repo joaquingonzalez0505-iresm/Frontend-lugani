@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
 
 export const INITIAL_PRODUCTOS = [
   {
@@ -21,7 +21,6 @@ export const INITIAL_PRODUCTOS = [
   },
 ];
 
-// --- SERVICIO DE PRODUCTOS ---
 export async function getProductos({ page = 0, limit = 12, nombre = "" } = {}) {
   try {
     const skip = page * limit;
@@ -113,7 +112,6 @@ export async function subirImagenProducto(file, token) {
   }
 }
 
-// --- SERVICIOS DE AUTENTICACIÓN Y USUARIO ---
 export async function loginUser(credentials, password) {
   try {
     const payload =
@@ -255,7 +253,6 @@ export async function eliminarCuenta(token) {
   }
 }
 
-// --- SERVICIOS DE PEDIDOS Y CARRITO ---
 export async function crearPedido(pedidoData, token) {
   try {
     const headers = {
