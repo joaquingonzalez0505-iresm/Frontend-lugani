@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { getMisPedidos, revocarPedido } from '../services/api';
 
 export function MisPedidos() {
   const { token, user } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Código de solicitud para mostrar explícitamente con role="status"
+  // Status code display with role="status"
   const [codigoStatusMsg, setCodigoStatusMsg] = useState(null);
   const [revocandoId, setRevocandoId] = useState(null);
 
@@ -63,35 +66,51 @@ export function MisPedidos() {
     try {
       const res = await revocarPedido(pedidoId, token);
       const codigoGenerado = res.codigo_solicitud || 'REV-OK';
-      
-      // Mostrar en pantalla el código de solicitud generado empleando role="status"
-      setCodigoStatusMsg(
-        `✅ Solicitud de arrepentimiento registrada. Código de trámite: ${codigoGenerado}`
-      );
+
+      const msg = `✅ Solicitud de arrepentimiento registrada. Código de trámite: ${codigoGenerado}`;
+      setCodigoStatusMsg(msg);
+      success(msg);
 
       // Refrescar la vista
       await cargarPedidos();
     } catch (err) {
-      alert(err.message || 'Error al procesar la revocación del pedido.');
+      const errorMsg = err.message || 'Error al procesar la revocación del pedido.';
+      toastError(errorMsg);
+      alert(errorMsg);
     } finally {
       setRevocandoId(null);
     }
   };
 
-  // 1. Pantalla explícita de Carga
+  if (!user) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.centerCard}>
+          <span style={{ fontSize: '3rem' }}>🔒</span>
+          <h2 style={styles.title}>Inicia sesión para ver tus pedidos</h2>
+          <p style={styles.subtext}>Debes estar autenticado para consultar tu historial de compras y realizar devoluciones.</p>
+          <Link to="/login" style={styles.primaryBtn}>
+            Iniciar Sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. Loading
   if (loading) {
     return (
       <div style={styles.container}>
         <div style={styles.centerCard} role="status">
           <div style={styles.spinner}>⏳</div>
           <h2 style={styles.loadingTitle}>Cargando pedidos...</h2>
-          <p style={styles.subtext}>Por favor espera un momento mientras consultamos tu historial.</p>
+          <p style={styles.subtext}>Por favor espera un momento mientras consultamos tu historial en Render PostgreSQL.</p>
         </div>
       </div>
     );
   }
 
-  // 2. Pantalla explícita de Error
+  // 2. Error
   if (error) {
     return (
       <div style={styles.container}>
@@ -107,16 +126,19 @@ export function MisPedidos() {
     );
   }
 
-  // 3. Pantalla explícita de Lista Vacía
+  // 3. Empty
   if (!pedidos || pedidos.length === 0) {
     return (
       <div style={styles.container}>
         <div style={styles.emptyCard}>
-          <span style={{ fontSize: '3rem' }}>📦</span>
+          <span style={{ fontSize: '3.5rem' }}>📦</span>
           <h2 style={styles.emptyTitle}>No tienes pedidos registrados</h2>
           <p style={styles.emptySubtext}>
-            Actualmente no has realizado ninguna compra en la tienda. Visita el catálogo para agregar tus productos preferidos.
+            Actualmente no has realizado ninguna compra con tu cuenta. Explora el catálogo de stickers para agregar tus productos preferidos.
           </p>
+          <Link to="/" style={styles.primaryBtn}>
+            Explorar Catálogo
+          </Link>
         </div>
       </div>
     );
@@ -124,12 +146,20 @@ export function MisPedidos() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.pageTitle}>Historial de Mis Pedidos</h1>
-      <p style={styles.pageSubtitle}>
-        Consulta el estado de tus compras y gestiona devoluciones bajo el derecho de arrepentimiento (10 días corridos).
-      </p>
+      <div style={styles.pageHeader}>
+        <div>
+          <div style={styles.tagBadge}>📦 Tus Compras</div>
+          <h1 style={styles.pageTitle}>Historial de Mis Pedidos</h1>
+          <p style={styles.pageSubtitle}>
+            Consulta el estado de tus compras y gestiona devoluciones bajo el derecho de arrepentimiento (10 días corridos según Ley N° 24.240).
+          </p>
+        </div>
+        <Link to="/" style={styles.backStoreBtn}>
+          ← Volver a la Tienda
+        </Link>
+      </div>
 
-      {/* Banner con código de solicitud generado empleando el atributo role="status" */}
+      {/* Banner con código de solicitud generado empleando role="status" */}
       {codigoStatusMsg && (
         <div style={styles.statusBanner} role="status">
           {codigoStatusMsg}
@@ -146,7 +176,8 @@ export function MisPedidos() {
                 <div>
                   <h3 style={styles.pedidoId}>Pedido #{pedido.id}</h3>
                   <span style={styles.fechaText}>
-                    Realizado el: {new Date(pedido.fecha_creacion).toLocaleDateString('es-AR', {
+                    Realizado el:{' '}
+                    {new Date(pedido.fecha_creacion).toLocaleDateString('es-AR', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
@@ -160,9 +191,15 @@ export function MisPedidos() {
                   <span
                     style={{
                       ...styles.estadoBadge,
-                      backgroundColor: pedido.estado === 'revocado' ? '#fef2f2' : '#ecfdf5',
-                      color: pedido.estado === 'revocado' ? '#dc2626' : '#047857',
-                      borderColor: pedido.estado === 'revocado' ? '#fecaca' : '#a7f3d0',
+                      backgroundColor:
+                        pedido.estado === 'revocado'
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : 'rgba(16, 185, 129, 0.15)',
+                      color: pedido.estado === 'revocado' ? '#fca5a5' : '#34d399',
+                      borderColor:
+                        pedido.estado === 'revocado'
+                          ? 'rgba(239, 68, 68, 0.3)'
+                          : 'rgba(16, 185, 129, 0.3)',
                     }}
                   >
                     {pedido.estado === 'revocado' ? '⛔ Revocado' : '✔ Completado'}
@@ -176,38 +213,46 @@ export function MisPedidos() {
 
               {pedido.codigo_solicitud_revocacion && (
                 <div style={styles.codigoBox} role="status">
-                  <strong>Código de Solicitud de Revocación:</strong> {pedido.codigo_solicitud_revocacion}
+                  <strong>Código de Solicitud de Revocación:</strong>{' '}
+                  <code style={styles.codeHighlight}>{pedido.codigo_solicitud_revocacion}</code>
                 </div>
               )}
 
               <div style={styles.itemsSection}>
-                <h4 style={styles.itemsTitle}>Productos:</h4>
+                <h4 style={styles.itemsTitle}>Artículos adquiridos:</h4>
                 <ul style={styles.itemsList}>
-                  {pedido.items && pedido.items.map((item, idx) => (
-                    <li key={item.id || idx} style={styles.itemRow}>
-                      <span>
-                        {item.cantidad}x <strong>{item.producto_nombre || 'Producto'}</strong>
-                      </span>
-                      <span>${(item.precio_unitario * item.cantidad).toLocaleString('es-AR')}</span>
-                    </li>
-                  ))}
+                  {pedido.items &&
+                    pedido.items.map((item, idx) => (
+                      <li key={item.id || idx} style={styles.itemRow}>
+                        <span>
+                          {item.cantidad}x{' '}
+                          <strong style={{ color: '#fff' }}>
+                            {item.producto_nombre || item.nombre || 'Sticker'}
+                          </strong>
+                        </span>
+                        <span style={{ color: '#10b981', fontWeight: '700' }}>
+                          ${((item.precio_unitario || item.precio_final || 0) * item.cantidad).toLocaleString('es-AR')}
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               </div>
 
               <div style={styles.pedidoFooter}>
-                {/* Botón de revocar exclusivamente en aquellas compras creadas hace 10 días o menos */}
                 {puedeRevocar ? (
                   <button
                     onClick={() => handleSolicitarRevocacion(pedido.id)}
                     disabled={revocandoId === pedido.id}
                     style={styles.revocarBtn}
                   >
-                    {revocandoId === pedido.id ? 'Procesando...' : '🛡️ Botón de Arrepentimiento (Revocar compra)'}
+                    {revocandoId === pedido.id
+                      ? 'Procesando revocación...'
+                      : '🛡️ Botón de Arrepentimiento (Revocar compra sin costo)'}
                   </button>
                 ) : (
                   <span style={styles.noRevocarInfo}>
                     {pedido.estado === 'revocado'
-                      ? 'Compra revocada'
+                      ? '✓ Compra revocada con éxito'
                       : 'Plazo de 10 días para revocación vencido'}
                   </span>
                 )}
@@ -222,50 +267,89 @@ export function MisPedidos() {
 
 const styles = {
   container: {
-    maxWidth: '960px',
+    maxWidth: '1000px',
     margin: '0 auto',
-    padding: '32px 16px',
+    padding: '3rem 1.5rem 5rem 1.5rem',
     minHeight: '75vh',
   },
-  pageTitle: {
-    fontSize: '1.8rem',
+  pageHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    marginBottom: '2rem',
+    flexWrap: 'wrap',
+  },
+  tagBadge: {
+    display: 'inline-block',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.2rem 0.65rem',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
     fontWeight: '800',
-    color: '#0f172a',
-    margin: '0 0 6px 0',
+    marginBottom: '0.4rem',
+  },
+  pageTitle: {
+    fontSize: 'clamp(1.8rem, 3vw, 2.4rem)',
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: '-0.02em',
+    margin: '0 0 0.4rem 0',
   },
   pageSubtitle: {
-    color: '#64748b',
-    margin: '0 0 24px 0',
+    color: '#94a3b8',
+    margin: 0,
     fontSize: '0.95rem',
+    maxWidth: '650px',
+    lineHeight: '1.5',
+  },
+  backStoreBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#cbd5e1',
+    padding: '0.6rem 1rem',
+    borderRadius: '10px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '0.88rem',
   },
   centerCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '48px 24px',
+    backgroundColor: '#131b2e',
+    borderRadius: '18px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '3.5rem 2rem',
     textAlign: 'center',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+    maxWidth: '540px',
+    margin: '3rem auto',
   },
   spinner: {
     fontSize: '2.5rem',
     marginBottom: '12px',
+    animation: 'spin 2s linear infinite',
   },
   loadingTitle: {
     fontSize: '1.3rem',
-    color: '#1e293b',
+    color: '#ffffff',
     margin: '0 0 8px 0',
   },
   subtext: {
-    color: '#64748b',
-    margin: 0,
+    color: '#94a3b8',
+    margin: '0 0 1.5rem 0',
+    fontSize: '0.92rem',
+    lineHeight: '1.5',
   },
   errorCard: {
-    backgroundColor: '#fef2f2',
-    borderRadius: '12px',
-    padding: '36px 24px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: '16px',
+    padding: '2.5rem',
     textAlign: 'center',
-    border: '1px solid #fecaca',
-    color: '#991b1b',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#fca5a5',
+    maxWidth: '540px',
+    margin: '3rem auto',
   },
   errorTitle: {
     fontSize: '1.3rem',
@@ -275,7 +359,7 @@ const styles = {
     margin: '0 0 16px 0',
   },
   retryBtn: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ef4444',
     color: '#ffffff',
     border: 'none',
     borderRadius: '8px',
@@ -284,98 +368,121 @@ const styles = {
     cursor: 'pointer',
   },
   emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '56px 24px',
+    backgroundColor: '#131b2e',
+    borderRadius: '18px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '4rem 2rem',
     textAlign: 'center',
-    border: '1px solid #e2e8f0',
+    maxWidth: '560px',
+    margin: '3rem auto',
   },
   emptyTitle: {
     fontSize: '1.4rem',
-    color: '#1e293b',
+    color: '#ffffff',
     margin: '16px 0 8px 0',
   },
   emptySubtext: {
-    color: '#64748b',
-    maxWidth: '460px',
-    margin: '0 auto',
+    color: '#94a3b8',
+    maxWidth: '440px',
+    margin: '0 auto 1.75rem auto',
+    fontSize: '0.95rem',
+    lineHeight: '1.5',
+  },
+  primaryBtn: {
+    display: 'inline-block',
+    backgroundColor: '#6366f1',
+    color: '#ffffff',
+    padding: '0.75rem 1.6rem',
+    borderRadius: '12px',
+    fontWeight: '700',
+    textDecoration: 'none',
     fontSize: '0.95rem',
   },
   statusBanner: {
-    backgroundColor: '#ecfdf5',
-    color: '#065f46',
-    border: '1px solid #a7f3d0',
-    padding: '14px 18px',
-    borderRadius: '10px',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    color: '#34d399',
+    border: '1px solid rgba(16, 185, 129, 0.35)',
+    padding: '1rem 1.25rem',
+    borderRadius: '12px',
     fontWeight: '700',
-    fontSize: '1rem',
-    marginBottom: '24px',
+    fontSize: '0.95rem',
+    marginBottom: '2rem',
   },
   pedidosList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '1.5rem',
   },
   pedidoCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    padding: '20px',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+    backgroundColor: '#131b2e',
+    borderRadius: '18px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '1.5rem',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
   },
   pedidoHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    borderBottom: '1px solid #f1f5f9',
-    paddingBottom: '12px',
-    marginBottom: '14px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+    paddingBottom: '1rem',
+    marginBottom: '1rem',
     flexWrap: 'wrap',
     gap: '10px',
   },
   pedidoId: {
     margin: '0 0 4px 0',
-    fontSize: '1.15rem',
-    fontWeight: '700',
-    color: '#1e293b',
+    fontSize: '1.25rem',
+    fontWeight: '800',
+    color: '#ffffff',
+    fontFamily: 'var(--font-heading)',
   },
   fechaText: {
     fontSize: '0.85rem',
-    color: '#64748b',
+    color: '#94a3b8',
   },
   estadoGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '1rem',
   },
   estadoBadge: {
-    padding: '4px 10px',
+    padding: '4px 12px',
     borderRadius: '999px',
     fontSize: '0.8rem',
-    fontWeight: '700',
+    fontWeight: '800',
     border: '1px solid transparent',
   },
   totalText: {
-    fontSize: '1.2rem',
-    fontWeight: '800',
-    color: '#059669',
+    fontSize: '1.35rem',
+    fontWeight: '900',
+    color: '#10b981',
+    fontFamily: 'var(--font-heading)',
   },
   codigoBox: {
-    backgroundColor: '#eff6ff',
-    color: '#1e40af',
-    border: '1px solid #bfdbfe',
-    padding: '8px 12px',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.65rem 1rem',
+    borderRadius: '10px',
+    fontSize: '0.88rem',
+    marginBottom: '1rem',
+  },
+  codeHighlight: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: '0.15rem 0.4rem',
     borderRadius: '6px',
-    fontSize: '0.9rem',
-    marginBottom: '14px',
+    fontWeight: '700',
   },
   itemsSection: {
-    marginBottom: '16px',
+    marginBottom: '1.25rem',
   },
   itemsTitle: {
-    margin: '0 0 8px 0',
-    fontSize: '0.9rem',
-    color: '#475569',
+    margin: '0 0 0.5rem 0',
+    fontSize: '0.85rem',
+    color: '#94a3b8',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   itemsList: {
     listStyle: 'none',
@@ -383,37 +490,39 @@ const styles = {
     margin: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '0.5rem',
   },
   itemRow: {
     display: 'flex',
     justifyContent: 'space-between',
-    fontSize: '0.9rem',
-    color: '#334155',
-    backgroundColor: '#f8fafc',
-    padding: '6px 10px',
-    borderRadius: '6px',
+    fontSize: '0.92rem',
+    color: '#cbd5e1',
+    backgroundColor: 'rgba(9, 13, 22, 0.6)',
+    padding: '0.65rem 1rem',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.04)',
   },
   pedidoFooter: {
     display: 'flex',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    borderTop: '1px solid #f1f5f9',
-    paddingTop: '12px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+    paddingTop: '1rem',
   },
   revocarBtn: {
-    backgroundColor: '#dc2626',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '8px 16px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: '#fca5a5',
+    border: '1px solid rgba(239, 68, 68, 0.35)',
+    borderRadius: '10px',
+    padding: '0.65rem 1.25rem',
     fontWeight: '700',
-    fontSize: '0.85rem',
+    fontSize: '0.88rem',
     cursor: 'pointer',
+    transition: 'all 0.2s ease',
   },
   noRevocarInfo: {
     fontSize: '0.85rem',
-    color: '#94a3b8',
+    color: '#64748b',
     fontStyle: 'italic',
   },
 };

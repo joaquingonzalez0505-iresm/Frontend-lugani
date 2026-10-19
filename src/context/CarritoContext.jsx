@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
 } from "react";
 
 const CarritoContext = createContext();
@@ -9,8 +10,23 @@ const CarritoContext = createContext();
 export const useCarrito = () => useContext(CarritoContext);
 
 export const CarritoProvider = ({ children }) => {
-  const [carrito, setCarrito] = useState([]);
+  const [carrito, setCarrito] = useState(() => {
+    try {
+      const saved = localStorage.getItem("carrito_stickers");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [mostrarModal, setMostrarModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("carrito_stickers", JSON.stringify(carrito));
+    } catch (e) {
+      console.warn("Error guardando carrito en localStorage:", e);
+    }
+  }, [carrito]);
 
   const agregarAlCarrito = (producto) => {
     setCarrito((prev) => {

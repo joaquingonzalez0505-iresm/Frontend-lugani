@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export function Register() {
-  const { register, login } = useAuth();
+  const { register } = useAuth();
+  const { success, error: toastError } = useToast();
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState('cliente');
-  const [aceptoTratamiento, setAceptoTratamiento] = useState(false);
+  const [aceptoTratamiento, setAceptoTratamiento] = useState(true);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,6 @@ export function Register() {
     e.preventDefault();
     setError(null);
 
-    // Validación preventiva en cliente
     if (!aceptoTratamiento) {
       setError('Debes aceptar el tratamiento de datos personales para registrarte.');
       return;
@@ -28,7 +29,7 @@ export function Register() {
     setLoading(true);
 
     try {
-      await register({
+      const res = await register({
         nombre,
         email,
         password,
@@ -36,11 +37,21 @@ export function Register() {
         rol,
       });
 
-      // Iniciar sesión automáticamente tras registro exitoso
-      await login(email, password);
-      navigate('/');
+      if (res.success) {
+        success(`🎉 ¡Cuenta creada con éxito! Bienvenido, ${nombre}`);
+        if (res.user?.es_admin || rol === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      } else {
+        setError(res.error || 'Error al registrar usuario.');
+        toastError(res.error || 'Error al registrar usuario.');
+      }
     } catch (err) {
-      setError(err.message || 'Error al registrar usuario.');
+      const msg = err.message || 'Error al registrar usuario.';
+      setError(msg);
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -49,10 +60,14 @@ export function Register() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Crear Cuenta</h1>
-        <p style={styles.subtitle}>Únete a la plataforma IRESM E-Commerce</p>
+        <div style={styles.brandBadge}>
+          <span>✨ NUEVO USUARIO</span>
+        </div>
 
-        {error && <div style={styles.errorBox}>{error}</div>}
+        <h1 style={styles.title}>Crear Cuenta</h1>
+        <p style={styles.subtitle}>Únete a la plataforma Sticker Lab // Merch & Devs</p>
+
+        {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
@@ -74,7 +89,7 @@ export function Register() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@correo.com"
+              placeholder="alumno@iresm.edu.ar"
               style={styles.input}
             />
           </div>
@@ -84,7 +99,7 @@ export function Register() {
             <input
               type="password"
               required
-              minLength={6}
+              minLength={4}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -99,9 +114,12 @@ export function Register() {
               onChange={(e) => setRol(e.target.value)}
               style={styles.select}
             >
-              <option value="cliente">Cliente</option>
-              <option value="admin">Administrador (Demo)</option>
+              <option value="cliente">Cliente (Catálogo y Compras)</option>
+              <option value="admin">Administrador (Gestor Completo CRUD)</option>
             </select>
+            <span style={styles.hintText}>
+              💡 Podés elegir Administrador para evaluar el panel de control.
+            </span>
           </div>
 
           {/* Checkbox obligatorio de Aceptación de Tratamiento de Datos */}
@@ -127,7 +145,7 @@ export function Register() {
               cursor: loading || !aceptoTratamiento ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading ? 'Creando Cuenta...' : 'Registrarse'}
+            {loading ? 'Creando Cuenta...' : 'Registrarse en Sticker Lab'}
           </button>
         </form>
 
@@ -145,104 +163,130 @@ export function Register() {
 const styles = {
   container: {
     maxWidth: '480px',
-    margin: '40px auto',
-    padding: '0 16px',
+    margin: '3.5rem auto 5rem auto',
+    padding: '0 1.25rem',
     minHeight: '65vh',
+    display: 'flex',
+    alignItems: 'center',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    padding: '32px 24px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+    backgroundColor: '#131b2e',
+    borderRadius: '20px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    padding: '2.5rem 2rem',
+    width: '100%',
+    boxShadow: '0 25px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.2)',
+  },
+  brandBadge: {
+    display: 'inline-block',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: '800',
+    letterSpacing: '0.04em',
+    marginBottom: '1rem',
   },
   title: {
-    margin: '0 0 6px 0',
-    fontSize: '1.5rem',
-    fontWeight: '800',
-    color: '#0f172a',
-    textAlign: 'center',
+    margin: '0 0 0.4rem 0',
+    fontSize: '1.6rem',
+    fontWeight: '900',
+    color: '#ffffff',
+    fontFamily: 'var(--font-heading)',
   },
   subtitle: {
-    margin: '0 0 24px 0',
-    color: '#64748b',
+    margin: '0 0 1.5rem 0',
+    color: '#94a3b8',
     fontSize: '0.9rem',
-    textAlign: 'center',
+    lineHeight: '1.4',
   },
   errorBox: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    padding: '10px 14px',
-    borderRadius: '8px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: '#fca5a5',
+    padding: '0.75rem 1rem',
+    borderRadius: '10px',
     fontSize: '0.88rem',
-    marginBottom: '16px',
-    border: '1px solid #fecaca',
+    marginBottom: '1.25rem',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '1.1rem',
   },
   field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '0.35rem',
   },
   label: {
-    fontSize: '0.88rem',
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: '0.82rem',
+    fontWeight: '700',
+    color: '#cbd5e1',
   },
   input: {
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.95rem',
+    padding: '0.7rem 0.9rem',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(9, 13, 22, 0.8)',
+    color: '#ffffff',
+    fontSize: '0.92rem',
+    outline: 'none',
   },
   select: {
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.95rem',
-    backgroundColor: '#ffffff',
+    padding: '0.7rem 0.9rem',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(9, 13, 22, 0.8)',
+    color: '#ffffff',
+    fontSize: '0.92rem',
+    outline: 'none',
+    cursor: 'pointer',
+  },
+  hintText: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    marginTop: '0.2rem',
   },
   checkboxGroup: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '10px',
-    marginTop: '4px',
+    gap: '0.6rem',
+    marginTop: '0.25rem',
   },
   checkbox: {
-    marginTop: '3px',
-    width: '18px',
-    height: '18px',
+    marginTop: '0.2rem',
     cursor: 'pointer',
   },
   checkboxLabel: {
-    fontSize: '0.85rem',
-    color: '#475569',
+    fontSize: '0.8rem',
+    color: '#94a3b8',
     lineHeight: '1.4',
     cursor: 'pointer',
   },
   submitBtn: {
-    backgroundColor: '#2563eb',
+    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '8px',
-    padding: '12px',
-    fontWeight: '700',
-    fontSize: '1rem',
-    marginTop: '8px',
+    borderRadius: '12px',
+    padding: '0.85rem',
+    fontWeight: '800',
+    fontSize: '0.95rem',
+    cursor: 'pointer',
+    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+    marginTop: '0.5rem',
   },
   footerText: {
-    marginTop: '20px',
-    fontSize: '0.9rem',
-    color: '#64748b',
+    marginTop: '1.5rem',
+    fontSize: '0.88rem',
+    color: '#94a3b8',
     textAlign: 'center',
   },
   link: {
-    color: '#2563eb',
-    fontWeight: '600',
+    color: '#a5b4fc',
+    fontWeight: '700',
     textDecoration: 'none',
   },
 };

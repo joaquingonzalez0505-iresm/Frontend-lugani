@@ -6,41 +6,50 @@ export function Arrepentimiento() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <span style={styles.icon}>🛡️</span>
-          <h1 style={styles.title}>Botón de Arrepentimiento y Derecho de Revocación</h1>
+          <div style={styles.shieldIcon}>🛡️</div>
+          <div>
+            <div style={styles.badge}>Marco Normativo Ley N° 24.240</div>
+            <h1 style={styles.title}>Botón de Arrepentimiento y Derecho de Revocación</h1>
+          </div>
         </div>
 
         <p style={styles.lead}>
-          Conforme a la legislación vigente (Ley N° 24.240 de Defensa del Consumidor y Resoluciones de Comercio), 
-          tienes derecho a revocar la aceptación del contrato o cancelar tus compras realizadas en este sitio web 
-          dentro del plazo de <strong>10 (diez) días corridos</strong> contados a partir de la fecha de realización de la compra o de la entrega del producto, lo que ocurra último.
+          Conforme a la legislación argentina vigente (Ley N° 24.240 de Defensa del Consumidor y Resoluciones conexas de Comercio), 
+          tienes derecho a revocar la aceptación del contrato o cancelar tus compras realizadas en esta tienda online 
+          dentro del plazo perentorio de <strong>10 (diez) días corridos</strong> contados a partir de la fecha de realización de la compra o de la entrega del producto, lo que ocurra último.
         </p>
 
         <div style={styles.section}>
-          <h2 style={styles.subtitle}>Condiciones del Trámite:</h2>
+          <h2 style={styles.subtitle}>✨ Condiciones del Trámite de Revocación:</h2>
           <ul style={styles.list}>
-            <li><strong>Sin Costos Adicionales:</strong> La revocación no genera ningún costo o penalización para el comprador.</li>
-            <li><strong>Devolución de Dinero:</strong> Al procesarse la cancelación, se reitera el reembolso total de los montos abonados a través del mismo medio de pago utilizado.</li>
-            <li><strong>Generación de Comprobante:</strong> Al presionar el botón de revocación en tu historial de pedidos, el sistema emitirá un código único de solicitud (ej. <code>REV-XXXXXX</code>) para que puedas realizar el seguimiento.</li>
+            <li>
+              <strong>Sin Costos ni Penalizaciones:</strong> La revocación no genera ningún tipo de gasto, penalidad ni deducción para el consumidor.
+            </li>
+            <li>
+              <strong>Devolución Íntegra de los Fondos:</strong> Al procesarse la cancelación del pedido, se reitera el reembolso total de los montos abonados a través del mismo canal de pago empleado.
+            </li>
+            <li>
+              <strong>Generación Automática de Comprobante:</strong> Al presionar el botón de revocación en la sección <em>Mis Pedidos</em>, el sistema emitirá un código único de solicitud (ej. <code>REV-XXXXXX</code>) con estado audible y visual para su seguimiento.
+            </li>
           </ul>
         </div>
 
         <div style={styles.section}>
-          <h2 style={styles.subtitle}>¿Cómo solicitar la cancelación?</h2>
-          <ol style={styles.list}>
-            <li>Inicia sesión con tu cuenta de usuario.</li>
-            <li>Ingresa a la sección <strong>Mis Pedidos</strong> desde la barra superior de navegación.</li>
-            <li>Ubica el pedido realizado en los últimos 10 días y presiona el botón rojo <strong>"🛡️ Botón de Arrepentimiento"</strong>.</li>
-            <li>Confirma la solicitud en pantalla. Al completarse, recibirás tu código de trámite generado con confirmación visual.</li>
+          <h2 style={styles.subtitle}>📋 ¿Cómo solicitar la revocación en esta tienda?</h2>
+          <ol style={styles.stepsList}>
+            <li>Inicia sesión con tu cuenta de usuario registrada en <strong>Sticker Lab</strong>.</li>
+            <li>Ingresa a la sección <strong>Mis Pedidos</strong> desde el menú de usuario de la barra superior.</li>
+            <li>Identifica la compra efectuada en los últimos 10 días y presiona el botón <strong>"🛡️ Botón de Arrepentimiento"</strong>.</li>
+            <li>Confirma la solicitud en el diálogo de seguridad. Una vez procesada, el sistema registrará la cancelación y mostrará tu código de trámite de revocación.</li>
           </ol>
         </div>
 
         <div style={styles.actions}>
           <Link to="/mis-pedidos" style={styles.btnPrimary}>
-            Ir a Mis Pedidos
+            📦 Ir a Mis Pedidos
           </Link>
           <Link to="/" style={styles.btnSecondary}>
-            Volver al Catálogo
+            ← Volver al Catálogo
           </Link>
         </div>
       </div>
@@ -50,81 +59,109 @@ export function Arrepentimiento() {
 
 const styles = {
   container: {
-    maxWidth: '800px',
+    maxWidth: '880px',
     margin: '0 auto',
-    padding: '36px 16px',
+    padding: '3.5rem 1.5rem 5rem 1.5rem',
     minHeight: '75vh',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    padding: '32px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+    backgroundColor: '#131b2e',
+    borderRadius: '20px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '2.5rem',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    borderBottom: '1px solid #e2e8f0',
-    paddingBottom: '16px',
-    marginBottom: '20px',
+    gap: '1rem',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    paddingBottom: '1.25rem',
+    marginBottom: '1.5rem',
   },
-  icon: {
-    fontSize: '2.2rem',
+  shieldIcon: {
+    fontSize: '2.8rem',
+  },
+  badge: {
+    display: 'inline-block',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.2rem 0.65rem',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: '800',
+    marginBottom: '0.35rem',
   },
   title: {
     margin: 0,
-    fontSize: '1.6rem',
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
+    fontWeight: '900',
+    color: '#ffffff',
+    fontFamily: 'var(--font-heading)',
   },
   lead: {
-    fontSize: '1.05rem',
-    color: '#334155',
+    fontSize: '1rem',
+    color: '#cbd5e1',
     lineHeight: '1.6',
-    marginBottom: '24px',
+    marginBottom: '1.75rem',
   },
   section: {
-    marginBottom: '24px',
+    marginBottom: '1.75rem',
   },
   subtitle: {
     fontSize: '1.2rem',
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: '10px',
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: '0.75rem',
   },
   list: {
-    color: '#475569',
-    lineHeight: '1.6',
-    fontSize: '0.95rem',
-    paddingLeft: '20px',
+    color: '#94a3b8',
+    lineHeight: '1.7',
+    fontSize: '0.92rem',
+    paddingLeft: '1.25rem',
     margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.6rem',
+  },
+  stepsList: {
+    color: '#cbd5e1',
+    lineHeight: '1.7',
+    fontSize: '0.92rem',
+    paddingLeft: '1.25rem',
+    margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.6rem',
   },
   actions: {
     display: 'flex',
-    gap: '12px',
-    marginTop: '32px',
+    gap: '1rem',
+    marginTop: '2.5rem',
     flexWrap: 'wrap',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    paddingTop: '1.5rem',
   },
   btnPrimary: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#6366f1',
     color: '#ffffff',
-    padding: '12px 20px',
-    borderRadius: '8px',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '12px',
     textDecoration: 'none',
     fontWeight: '700',
-    fontSize: '0.95rem',
+    fontSize: '0.92rem',
+    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
   },
   btnSecondary: {
-    backgroundColor: '#f1f5f9',
-    color: '#334155',
-    padding: '12px 20px',
-    borderRadius: '8px',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    color: '#cbd5e1',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '12px',
     textDecoration: 'none',
     fontWeight: '600',
-    fontSize: '0.95rem',
-    border: '1px solid #cbd5e1',
+    fontSize: '0.92rem',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
   },
 };
 

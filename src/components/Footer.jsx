@@ -5,19 +5,49 @@ export function Footer() {
   return (
     <footer style={styles.footer}>
       <div style={styles.container}>
-        <div style={styles.infoGroup}>
-          <p style={styles.copy}>
-            © {new Date().getFullYear()} E-Commerce IRESM. Todos los derechos reservados.
-          </p>
-          <p style={styles.legalNotice}>
-            Conforme a la Ley de Defensa del Consumidor, cuentas con el derecho de cancelar tus compras realizadas en línea dentro de los 10 días corridos sin costo alguno.
-          </p>
+        <div style={styles.topRow}>
+          {/* Brand info */}
+          <div style={styles.brandCol}>
+            <div style={styles.brandTitle}>
+              <span style={styles.brandIcon}>✨</span> STICKER<span style={{ color: '#ec4899' }}>LAB</span>
+            </div>
+            <p style={styles.brandDesc}>
+              Stickers de vinilo de alta densidad para desarrolladores, laptops, termos y gadgets.
+              Diseños únicos, impermeabilidad total y protección UV.
+            </p>
+          </div>
+
+          {/* Quick links */}
+          <div style={styles.linksCol}>
+            <h4 style={styles.colTitle}>Navegación</h4>
+            <div style={styles.linksList}>
+              <Link to="/" style={styles.link}>Catálogo de Stickers</Link>
+              <Link to="/mis-pedidos" style={styles.link}>Mis Pedidos</Link>
+              <Link to="/mis-datos" style={styles.link}>Mis Datos Personales</Link>
+              <Link to="/admin" style={styles.linkAdmin}>👑 Panel Administrador</Link>
+            </div>
+          </div>
+
+          {/* Legal Arrepentimiento */}
+          <div style={styles.legalCol}>
+            <h4 style={styles.colTitle}>Defensa del Consumidor</h4>
+            <p style={styles.legalNotice}>
+              Conforme a la Ley N° 24.240 y Resoluciones de Comercio, cuentas con el derecho irrenunciable a cancelar tus compras online sin costo alguno dentro de los 10 días corridos.
+            </p>
+            <Link to="/arrepentimiento" style={styles.arrepentimientoLink}>
+              🛡️ Botón de Arrepentimiento (10 Días)
+            </Link>
+          </div>
         </div>
 
-        <div style={styles.linkGroup}>
-          <Link to="/arrepentimiento" style={styles.arrepentimientoLink}>
-            🛡️ Botón de Arrepentimiento (Derecho de Revocación)
-          </Link>
+        <div style={styles.bottomRow}>
+          <p style={styles.copy}>
+            © {new Date().getFullYear()} StickerLab Studio // E-Commerce IRESM. Todos los derechos reservados.
+          </p>
+          <div style={styles.badgesRow}>
+            <span style={styles.badgeMini}>PostgreSQL en Render</span>
+            <span style={styles.badgeMini}>Deploy en Vercel</span>
+          </div>
         </div>
       </div>
     </footer>
@@ -26,51 +56,130 @@ export function Footer() {
 
 const styles = {
   footer: {
-    backgroundColor: '#0f172a',
-    color: '#94a3b8',
-    borderTop: '1px solid #1e293b',
-    padding: '28px 20px',
+    backgroundColor: '#090d16',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '3.5rem 1.5rem 2rem 1.5rem',
     marginTop: 'auto',
+    color: '#94a3b8',
   },
   container: {
-    maxWidth: '1200px',
+    maxWidth: '1320px',
     margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2.5rem',
+  },
+  topRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '2.5rem',
+  },
+  brandCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8rem',
+  },
+  brandTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '900',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontFamily: 'var(--font-heading)',
+  },
+  brandIcon: {
+    fontSize: '1.2rem',
+  },
+  brandDesc: {
+    fontSize: '0.88rem',
+    lineHeight: '1.6',
+    color: '#94a3b8',
+    margin: 0,
+    maxWidth: '340px',
+  },
+  linksCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8rem',
+  },
+  colTitle: {
+    margin: 0,
+    fontSize: '0.92rem',
+    fontWeight: '800',
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  linksList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  link: {
+    color: '#94a3b8',
+    textDecoration: 'none',
+    fontSize: '0.88rem',
+    transition: 'color 0.2s ease',
+  },
+  linkAdmin: {
+    color: '#fbbf24',
+    textDecoration: 'none',
+    fontSize: '0.88rem',
+    fontWeight: '700',
+  },
+  legalCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8rem',
+  },
+  legalNotice: {
+    fontSize: '0.82rem',
+    lineHeight: '1.5',
+    color: '#64748b',
+    margin: 0,
+  },
+  arrepentimientoLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.6rem 1rem',
+    borderRadius: '10px',
+    textDecoration: 'none',
+    fontWeight: '700',
+    fontSize: '0.85rem',
+    alignSelf: 'flex-start',
+    transition: 'all 0.2s ease',
+  },
+  bottomRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+    paddingTop: '1.5rem',
     flexWrap: 'wrap',
-    gap: '16px',
-  },
-  infoGroup: {
-    maxWidth: '700px',
+    gap: '1rem',
+    fontSize: '0.82rem',
   },
   copy: {
-    margin: '0 0 6px 0',
-    fontWeight: '600',
-    color: '#e2e8f0',
-    fontSize: '0.9rem',
-  },
-  legalNotice: {
     margin: 0,
-    fontSize: '0.82rem',
     color: '#64748b',
-    lineHeight: '1.4',
   },
-  linkGroup: {
+  badgesRow: {
     display: 'flex',
-    alignItems: 'center',
+    gap: '0.6rem',
   },
-  arrepentimientoLink: {
-    display: 'inline-block',
-    backgroundColor: '#3b82f6',
-    color: '#ffffff',
-    padding: '10px 16px',
-    borderRadius: '8px',
-    textDecoration: 'none',
-    fontWeight: '700',
-    fontSize: '0.9rem',
-    boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
-    transition: 'background-color 0.2s ease',
+  badgeMini: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    color: '#94a3b8',
+    padding: '0.2rem 0.55rem',
+    borderRadius: '6px',
+    fontSize: '0.72rem',
+    fontWeight: '600',
   },
 };
 

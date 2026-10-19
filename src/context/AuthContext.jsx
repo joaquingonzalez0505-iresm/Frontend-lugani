@@ -11,13 +11,34 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem("token") || "";
+  });
 
   const login = async (email, password) => {
     try {
-      const res = await fetch(
-        `${API_URL}/auth/login`,
-        {
+      let res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (res.status === 404) {
+        res = await fetch(`${API_URL}/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -26,126 +47,155 @@ export const AuthProvider = ({ children }) => {
             email,
             password,
           }),
-        }
-      );
+        });
+      }
 
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(
-          data.detail || "Error al iniciar sesión"
+          data.detail || data.message || "Error al iniciar sesión"
         );
       }
 
-      if (data.access_token) {
-        localStorage.setItem(
-          "token",
-          data.access_token
-        );
+      const accessToken = data.access_token || data.token || "";
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        setToken(accessToken);
       }
+
+      const rawUser = data.user || data.usuario || data;
+      const esAdmin = Boolean(
+        rawUser.es_admin ||
+        rawUser.is_admin ||
+        rawUser.rol === "admin" ||
+        rawUser.role === "admin"
+      );
 
       const usuarioCompleto = {
-        ...(data.user || {}),
-        token: data.access_token,
+        ...rawUser,
+        token: accessToken,
+        es_admin: esAdmin,
+        rol: rawUser.rol || (esAdmin ? "admin" : "cliente"),
       };
 
       setUser(usuarioCompleto);
+      localStorage.setItem("user", JSON.stringify(usuarioCompleto));
 
       return {
         success: true,
         user: usuarioCompleto,
       };
     } catch (err) {
-      console.error(
-        "Error al iniciar sesión:",
-        err
-      );
+      console.error("Error al iniciar sesión:", err);
 
       return {
         success: false,
-        error:
-          err.message ||
-          "Error al iniciar sesión",
+        error: err.message || "Error al iniciar sesión",
       };
     }
   };
 
-  const register = async (
-    nombre,
-    email,
-    password
-  ) => {
+  const register = async (nombreOrObj, email, password, rol = "cliente") => {
     try {
-      const res = await fetch(
-        `${API_URL}/auth/register`,
-        {
+      let payload;
+      if (typeof nombreOrObj === "object" && nombreOrObj !== null) {
+        payload = nombreOrObj;
+      } else {
+        payload = {
+          nombre: nombreOrObj,
+          email,
+          password,
+          rol,
+          acepto_tratamiento: true,
+        };
+      }
+
+      let res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 404) {
+        res = await fetch(`${API_URL}/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            nombre,
-            email,
-            password,
-          }),
-        }
-      );
+          body: JSON.stringify(payload),
+        });
+      }
 
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(
-          data.detail || "Error en el registro"
+          data.detail || data.message || "Error en el registro"
         );
       }
 
-      const usuarioRegistrado =
-        data.user || data;
+      const usuarioRegistrado = data.user || data.usuario || data;
+      const accessToken = data.access_token || data.token || "";
 
-      if (data.access_token) {
-        localStorage.setItem(
-          "token",
-          data.access_token
-        );
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        setToken(accessToken);
       }
+
+      const esAdmin = Boolean(
+        usuarioRegistrado.es_admin ||
+        usuarioRegistrado.is_admin ||
+        usuarioRegistrado.rol === "admin" ||
+        payload.rol === "admin"
+      );
 
       const usuarioCompleto = {
         ...usuarioRegistrado,
-        ...(data.access_token
-          ? { token: data.access_token }
-          : {}),
+        token: accessToken,
+        es_admin: esAdmin,
+        rol: usuarioRegistrado.rol || (esAdmin ? "admin" : "cliente"),
       };
 
       setUser(usuarioCompleto);
+      localStorage.setItem("user", JSON.stringify(usuarioCompleto));
 
       return {
         success: true,
         user: usuarioCompleto,
       };
     } catch (err) {
-      console.error(
-        "Error en el registro:",
-        err
-      );
+      console.error("Error en el registro:", err);
 
       return {
         success: false,
-        error:
-          err.message ||
-          "Error en el registro",
+        error: err.message || "Error en el registro",
       };
     }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
+    setToken("");
   };
+
+  const esAdmin = Boolean(
+    user?.es_admin ||
+    user?.is_admin ||
+    user?.rol === "admin" ||
+    user?.role === "admin"
+  );
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
+        esAdmin,
         login,
         register,
         logout,

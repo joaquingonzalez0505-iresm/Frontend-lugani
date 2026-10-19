@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { getMisDatos, exportarMisDatos, eliminarCuenta } from '../services/api';
 
 export function MisDatos() {
-  const { token, logout } = useAuth();
+  const { token, logout, user } = useAuth();
+  const { success, error: toastError } = useToast();
   const navigate = useNavigate();
 
   const [perfil, setPerfil] = useState(null);
@@ -54,8 +56,11 @@ export function MisDatos() {
       document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
+      success("✓ Archivo JSON con tus datos descargado correctamente.");
     } catch (err) {
-      alert(err.message || 'Error al exportar los datos en formato JSON.');
+      const msg = err.message || 'Error al exportar los datos en formato JSON.';
+      toastError(msg);
+      alert(msg);
     } finally {
       setDescargando(false);
     }
@@ -78,20 +83,35 @@ export function MisDatos() {
     setEliminando(true);
     try {
       await eliminarCuenta(token);
-      // Vaciar la sesión y volver al inicio
       logout();
+      success("Tu cuenta ha sido eliminada permanentemente.");
       navigate('/');
     } catch (err) {
       setErrorEliminar(err.message || 'Error al procesar la eliminación de la cuenta');
+      toastError('Error al eliminar cuenta.');
     } finally {
       setEliminando(false);
     }
   };
 
+  if (!user) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.centerBox}>
+          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>Inicia sesión para gestionar tus datos</h2>
+          <Link to="/login" style={styles.primaryBtn}>
+            Ir a Iniciar Sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={styles.container}>
         <div style={styles.centerBox}>
+          <span style={{ fontSize: '2.5rem', animation: 'spin 2s linear infinite', display: 'inline-block' }}>⏳</span>
           <p style={styles.loadingText}>Cargando datos personales...</p>
         </div>
       </div>
@@ -111,8 +131,16 @@ export function MisDatos() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Mis Datos Personales</h1>
-      <p style={styles.subtitle}>Gestión de privacidad, consentimiento y exportación de información</p>
+      <div style={styles.pageHeader}>
+        <div>
+          <div style={styles.tagBadge}>🛡️ Privacidad & Datos</div>
+          <h1 style={styles.title}>Mis Datos Personales</h1>
+          <p style={styles.subtitle}>Gestión de privacidad, consentimiento y exportación de información</p>
+        </div>
+        <Link to="/" style={styles.backBtn}>
+          ← Volver a la Tienda
+        </Link>
+      </div>
 
       {perfil && (
         <div style={styles.grid}>
@@ -138,7 +166,7 @@ export function MisDatos() {
             <h2 style={styles.cardTitle}>📜 Consentimiento de Datos</h2>
             <div style={styles.infoRow}>
               <span style={styles.label}>Tratamiento de datos aceptado:</span>
-              <span style={{ color: perfil.acepto_tratamiento ? '#059669' : '#dc2626', fontWeight: '700' }}>
+              <span style={{ color: perfil.acepto_tratamiento ? '#34d399' : '#f87171', fontWeight: '700' }}>
                 {perfil.acepto_tratamiento ? '✔ Aceptado' : '❌ No Aceptado'}
               </span>
             </div>
@@ -168,20 +196,20 @@ export function MisDatos() {
                 disabled={descargando}
                 style={styles.downloadBtn}
               >
-                {descargando ? 'Generando JSON...' : '📥 Descargar mis datos (JSON)'}
+                {descargando ? 'Generando archivo JSON...' : '📥 Descargar mis datos (JSON)'}
               </button>
             </div>
           </div>
 
           {/* Tarjeta de Eliminación de Cuenta */}
-          <div style={{ ...styles.card, borderColor: '#fecaca', gridColumn: '1 / -1' }}>
-            <h2 style={{ ...styles.cardTitle, color: '#dc2626' }}>⚠️ Zona de Peligro: Eliminar Cuenta</h2>
+          <div style={{ ...styles.card, borderColor: 'rgba(239, 68, 68, 0.3)', gridColumn: '1 / -1' }}>
+            <h2 style={{ ...styles.cardTitle, color: '#f87171' }}>⚠️ Zona de Peligro: Eliminar Cuenta</h2>
             <p style={styles.deleteWarning}>
               Al eliminar tu cuenta se borrarán permanentemente tus datos personales y se cerrará la sesión de forma inmediata.
-              Para confirmar, escribe la palabra <strong style={{ color: '#dc2626' }}>ELIMINAR</strong> a continuación:
+              Para confirmar, escribe la palabra <strong style={{ color: '#f87171' }}>ELIMINAR</strong> a continuación:
             </p>
 
-            {errorEliminar && <div style={styles.errorBoxAlert}>{errorEliminar}</div>}
+            {errorEliminar && <div style={styles.errorBoxAlert}>⚠️ {errorEliminar}</div>}
 
             <form onSubmit={handleEliminarCuenta} style={styles.deleteForm}>
               <input
@@ -196,7 +224,7 @@ export function MisDatos() {
                 disabled={eliminando || inputEliminar.trim() !== 'ELIMINAR'}
                 style={{
                   ...styles.deleteBtn,
-                  opacity: inputEliminar.trim() === 'ELIMINAR' ? 1 : 0.5,
+                  opacity: inputEliminar.trim() === 'ELIMINAR' ? 1 : 0.45,
                   cursor: inputEliminar.trim() === 'ELIMINAR' ? 'pointer' : 'not-allowed',
                 }}
               >
@@ -212,126 +240,179 @@ export function MisDatos() {
 
 const styles = {
   container: {
-    maxWidth: '900px',
+    maxWidth: '960px',
     margin: '0 auto',
-    padding: '32px 16px',
+    padding: '3rem 1.5rem 5rem 1.5rem',
     minHeight: '75vh',
   },
-  title: {
-    fontSize: '1.8rem',
+  pageHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    marginBottom: '2rem',
+    flexWrap: 'wrap',
+  },
+  tagBadge: {
+    display: 'inline-block',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '0.2rem 0.65rem',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
     fontWeight: '800',
-    color: '#0f172a',
-    margin: '0 0 6px 0',
+    marginBottom: '0.4rem',
+  },
+  title: {
+    fontSize: 'clamp(1.8rem, 3vw, 2.3rem)',
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: '-0.02em',
+    margin: '0 0 0.4rem 0',
   },
   subtitle: {
-    color: '#64748b',
-    margin: '0 0 28px 0',
+    color: '#94a3b8',
+    margin: 0,
     fontSize: '0.95rem',
+  },
+  backBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#cbd5e1',
+    padding: '0.6rem 1rem',
+    borderRadius: '10px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '0.88rem',
   },
   centerBox: {
     textAlign: 'center',
-    padding: '48px 0',
+    padding: '4rem 1rem',
+    backgroundColor: '#131b2e',
+    borderRadius: '18px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    maxWidth: '520px',
+    margin: '3rem auto',
+  },
+  primaryBtn: {
+    display: 'inline-block',
+    backgroundColor: '#6366f1',
+    color: '#fff',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '12px',
+    fontWeight: '700',
+    textDecoration: 'none',
   },
   loadingText: {
-    color: '#2563eb',
+    color: '#a5b4fc',
     fontWeight: '600',
+    marginTop: '1rem',
   },
   errorBox: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    padding: '20px',
-    borderRadius: '10px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: '#fca5a5',
+    padding: '1.5rem',
+    borderRadius: '14px',
     textAlign: 'center',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
   },
   retryBtn: {
     marginTop: '10px',
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ef4444',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     padding: '8px 16px',
+    fontWeight: '700',
+    cursor: 'pointer',
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-    gap: '24px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+    gap: '1.5rem',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    padding: '24px',
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+    backgroundColor: '#131b2e',
+    borderRadius: '18px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '1.75rem',
+    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
   },
   cardTitle: {
-    margin: '0 0 16px 0',
-    fontSize: '1.2rem',
-    fontWeight: '700',
-    color: '#1e293b',
-    borderBottom: '1px solid #f1f5f9',
-    paddingBottom: '10px',
+    margin: '0 0 1.25rem 0',
+    fontSize: '1.25rem',
+    fontWeight: '800',
+    color: '#ffffff',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+    paddingBottom: '0.75rem',
   },
   infoRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '12px',
-    fontSize: '0.95rem',
+    marginBottom: '1rem',
+    fontSize: '0.92rem',
   },
   label: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontWeight: '500',
   },
   value: {
-    color: '#0f172a',
+    color: '#f8fafc',
     fontWeight: '600',
   },
   valueRole: {
     textTransform: 'uppercase',
-    fontWeight: '700',
-    color: '#2563eb',
-    fontSize: '0.85rem',
+    fontWeight: '800',
+    color: '#6366f1',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    padding: '0.2rem 0.6rem',
+    borderRadius: '6px',
+    fontSize: '0.82rem',
   },
   valueHighlight: {
-    color: '#1e293b',
-    fontWeight: '700',
-    fontSize: '0.9rem',
+    color: '#e2e8f0',
+    fontWeight: '600',
+    fontSize: '0.88rem',
   },
   exportSection: {
-    marginTop: '20px',
-    paddingTop: '16px',
-    borderTop: '1px solid #f1f5f9',
+    marginTop: '1.5rem',
+    paddingTop: '1.25rem',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
   },
   exportDesc: {
     fontSize: '0.85rem',
-    color: '#64748b',
-    margin: '0 0 12px 0',
+    color: '#94a3b8',
+    margin: '0 0 1rem 0',
+    lineHeight: '1.4',
   },
   downloadBtn: {
-    backgroundColor: '#059669',
+    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '8px',
-    padding: '10px 16px',
+    borderRadius: '10px',
+    padding: '0.75rem 1.25rem',
     fontWeight: '700',
-    fontSize: '0.9rem',
+    fontSize: '0.92rem',
     cursor: 'pointer',
     width: '100%',
+    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
   },
   deleteWarning: {
-    color: '#475569',
-    fontSize: '0.95rem',
+    color: '#cbd5e1',
+    fontSize: '0.92rem',
     lineHeight: '1.5',
-    marginBottom: '16px',
+    marginBottom: '1.25rem',
   },
   errorBoxAlert: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    padding: '8px 12px',
-    borderRadius: '6px',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: '#fca5a5',
+    padding: '0.65rem 1rem',
+    borderRadius: '8px',
     fontSize: '0.85rem',
-    marginBottom: '12px',
-    border: '1px solid #fecaca',
+    marginBottom: '1rem',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
   },
   deleteForm: {
     display: 'flex',
@@ -340,20 +421,24 @@ const styles = {
   },
   deleteInput: {
     flexGrow: 1,
-    padding: '10px 14px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
+    padding: '0.75rem 1rem',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(9, 13, 22, 0.8)',
+    color: '#fff',
     fontSize: '0.95rem',
-    minWidth: '200px',
+    minWidth: '220px',
+    outline: 'none',
   },
   deleteBtn: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ef4444',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    fontWeight: '700',
-    fontSize: '0.9rem',
+    borderRadius: '10px',
+    padding: '0.75rem 1.4rem',
+    fontWeight: '800',
+    fontSize: '0.92rem',
+    boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
   },
 };
 

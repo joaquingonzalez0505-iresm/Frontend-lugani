@@ -313,3 +313,40 @@ export async function revocarPedido(pedidoId, token) {
     throw error;
   }
 }
+
+export async function eliminarProducto(id, token) {
+  try {
+    const headers = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const response = await fetch(`${BASE_URL}/productos/${id}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al eliminar producto: ${response.status}`);
+    }
+
+    return await response.json().catch(() => ({ success: true, id }));
+  } catch (error) {
+    console.error("Error en eliminarProducto:", error);
+    throw error;
+  }
+}
+
+export async function getPedidosAdmin(token) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch(`${BASE_URL}/pedidos/`, { headers });
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener pedidos: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error en getPedidosAdmin:", error);
+    return [];
+  }
+}
