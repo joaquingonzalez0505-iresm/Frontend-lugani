@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { crearProducto, actualizarProducto, subirImagenProducto } from '../services/api';
 
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
+
 export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
   const { token } = useAuth();
   const fileInputRef = useRef(null);
@@ -224,7 +226,7 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
           {!previewUrl && imagenUrl && (
             <div style={styles.previewContainer}>
               <p style={styles.previewLabel}>Imagen actual:</p>
-              <img src={imagenUrl.startsWith('http') ? imagenUrl : `http://localhost:8000${imagenUrl}`} alt="Actual" style={styles.previewImg} />
+              <img src={imagenUrl.startsWith('http') ? imagenUrl : `${API_URL}${imagenUrl}`} alt="Actual" style={styles.previewImg} />
             </div>
           )}
 

@@ -6,6 +6,22 @@ const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.o
 export default function Catalog() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [lento, setLento] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (cargando) {
+      timer = setTimeout(() => {
+        setLento(true);
+      }, 5000);
+    } else {
+      setLento(false);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [cargando]);
 
   useEffect(() => {
     fetch(`${API_URL}/productos/`)
@@ -29,7 +45,9 @@ export default function Catalog() {
   if (cargando) {
     return (
       <div style={styles.loading}>
-        Cargando stickers...
+        {lento
+          ? "Despertando el servidor, la primera visita puede tardar un minuto…"
+          : "Cargando productos…"}
       </div>
     );
   }
