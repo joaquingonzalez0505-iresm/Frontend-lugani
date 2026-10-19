@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const { success, error: toastError, info } = useToast();
   const navigate = useNavigate();
 
-  // Admin login form states (if user not authenticated)
+  // Admin login form states
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -53,10 +53,11 @@ export default function AdminDashboard() {
 
   // Load orders
   const cargarPedidos = async () => {
-    if (!token) return;
+    const activeToken = token || user?.token;
+    if (!activeToken) return;
     setLoadingPedidos(true);
     try {
-      const data = await getPedidosAdmin(token);
+      const data = await getPedidosAdmin(activeToken);
       setPedidos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error al cargar pedidos para admin:", err);
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
       cargarProductos();
       cargarPedidos();
     }
-  }, [esAdmin, token]);
+  }, [esAdmin, token, user]);
 
   // Handler for Admin Login
   const handleAdminLogin = async (e) => {
@@ -82,7 +83,7 @@ export default function AdminDashboard() {
       const res = await login(adminEmail, adminPassword);
       if (res.success) {
         if (!res.user?.es_admin && res.user?.rol !== 'admin') {
-          setLoginError('Esta cuenta no posee rol de Administrador. Contacta a un administrador o crea una cuenta con rol admin en Registro.');
+          setLoginError('Esta cuenta no posee rol de Administrador.');
         } else {
           success(`¡Bienvenido al Panel, ${res.user.nombre}!`);
         }
@@ -96,22 +97,32 @@ export default function AdminDashboard() {
     }
   };
 
-  // Delete product action
+  // Acción de eliminar producto con actualización reactiva
   const handleConfirmarEliminar = async () => {
     if (!productoAEliminar) return;
+    const targetId = productoAEliminar.id;
+    const targetNombre = productoAEliminar.nombre;
+    const activeToken = token || user?.token;
     setEliminando(true);
 
     try {
-      await eliminarProducto(productoAEliminar.id, token);
-      success(`✓ Sticker "${productoAEliminar.nombre}" eliminado correctamente.`);
-      setProductoAEliminar(null);
-      await cargarProductos();
+      await eliminarProducto(targetId, activeToken);
+      success(`✓ Sticker "${targetNombre}" eliminado correctamente.`);
+      setProductos((prev) => prev.filter((p) => p.id !== targetId));
     } catch (err) {
+      console.error("Error al eliminar:", err);
       const msg = err.message || 'Error al eliminar producto.';
-      toastError(msg);
-      alert(msg);
+      toastError(`No se pudo eliminar: ${msg}`);
+
+      // Si el producto ya no existía en Render (404), limpiamos la vista
+      if (msg.includes('404')) {
+        setProductos((prev) => prev.filter((p) => p.id !== targetId));
+        info(`El producto #${targetId} ya no existía en Render. Se removió del catálogo.`);
+      }
     } finally {
+      setProductoAEliminar(null);
       setEliminando(false);
+      await cargarProductos();
     }
   };
 
@@ -193,18 +204,6 @@ export default function AdminDashboard() {
             </button>
           </form>
 
-          <div style={styles.demoNotice}>
-            <p style={{ margin: 0, fontWeight: '700', color: '#f59e0b' }}>
-              💡 ¿Estás en modo de evaluación o pruebas?
-            </p>
-            <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
-              Podés crear una cuenta con rol <strong>Administrador (Demo)</strong> desde la sección de{' '}
-              <Link to="/register" style={{ color: '#6366f1', fontWeight: '700' }}>
-                Registro
-              </Link>.
-            </p>
-          </div>
-
           <Link to="/" style={styles.backLink}>
             ← Volver a la Tienda
           </Link>
@@ -224,16 +223,6 @@ export default function AdminDashboard() {
             Hola <strong>{user.nombre}</strong>. Has iniciado sesión con una cuenta de perfil{' '}
             <span style={styles.roleTagClient}>CLIENTE</span>. Las funciones de gestión de productos y pedidos globales están reservadas exclusivamente para administradores.
           </p>
-
-          <div style={styles.clientOptionsBox}>
-            <p style={styles.clientOptionsTitle}>Tus accesos habilitados:</p>
-            <ul style={styles.clientOptionsList}>
-              <li>✓ Navegar y comprar en el Catálogo de Stickers</li>
-              <li>✓ Gestión de tu Carrito de compras</li>
-              <li>✓ Consultar el historial de Mis Pedidos y Derecho de Revocación</li>
-              <li>✓ Gestionar Mis Datos Personales y Consentimiento legal</li>
-            </ul>
-          </div>
 
           <div style={styles.deniedActions}>
             <Link to="/" style={styles.btnReturnStore}>
@@ -356,7 +345,6 @@ export default function AdminDashboard() {
       {/* TAB 1: PRODUCT MANAGER (CRUD) */}
       {tabActiva === 'productos' && (
         <div style={styles.sectionCard}>
-          {/* Controls Bar */}
           <div style={styles.tableControls}>
             <div style={styles.searchBox}>
               <span>🔍</span>
@@ -407,22 +395,30 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {productosFiltrados.map((prod) => {
-                    const img = prod.imagen || prod.imagen_url || '';
-                    const fullImg = img.startsWith('http') ? img : `${API_URL}/${img}`;
+                    const rawImg = (prod.imagen || prod.imagen_url || '').trim();
+                    const hasImg = Boolean(rawImg);
+                    const fullImg = hasImg
+                      ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') || rawImg.startsWith('data:')
+                        ? rawImg
+                        : `${API_URL}/${rawImg.replace(/^\//, '')}`)
+                      : '';
+
                     const precioNum = Number(prod.precio_final || prod.precio || 0);
 
                     return (
                       <tr key={prod.id} style={styles.tr}>
                         <td style={styles.td}>
                           <div style={styles.thumbWrapper}>
-                            {img ? (
+                            {hasImg ? (
                               <img
                                 src={fullImg}
                                 alt={prod.nombre}
                                 style={styles.tableImg}
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
-                                  e.currentTarget.parentElement.innerText = '✨';
+                                  if (e.currentTarget.parentElement) {
+                                    e.currentTarget.parentElement.innerText = '✨';
+                                  }
                                 }}
                               />
                             ) : (
@@ -495,7 +491,6 @@ export default function AdminDashboard() {
       {/* TAB 2: ORDER MANAGER */}
       {tabActiva === 'pedidos' && (
         <div style={styles.sectionCard}>
-          {/* Filter Bar */}
           <div style={styles.tableControls}>
             <div style={styles.filterGroup}>
               {['todos', 'completado', 'pendiente', 'revocado'].map((st) => (
@@ -550,11 +545,11 @@ export default function AdminDashboard() {
                   {pedidosFiltrados.map((pedido) => {
                     const fecha = pedido.fecha_creacion
                       ? new Date(pedido.fecha_creacion).toLocaleString('es-AR', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                       : 'Fecha N/D';
 
                     const itemsCount = pedido.items ? pedido.items.length : 0;
@@ -595,8 +590,8 @@ export default function AdminDashboard() {
                               ...(estado === 'revocado'
                                 ? styles.badgeRevocado
                                 : estado === 'pendiente'
-                                ? styles.badgePendiente
-                                : styles.badgeCompletado),
+                                  ? styles.badgePendiente
+                                  : styles.badgeCompletado),
                             }}
                           >
                             {estado === 'revocado' ? '⛔ Revocado' : estado === 'pendiente' ? '⏳ Pendiente' : '✓ Completado'}
@@ -1096,7 +1091,6 @@ const styles = {
     textAlign: 'center',
     padding: '3rem 1rem',
   },
-  // Access Guard / Login styles
   accessContainer: {
     minHeight: '75vh',
     display: 'flex',
@@ -1182,13 +1176,6 @@ const styles = {
     boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
     marginTop: '0.5rem',
   },
-  demoNotice: {
-    marginTop: '1.5rem',
-    backgroundColor: 'rgba(9, 13, 22, 0.6)',
-    borderRadius: '12px',
-    padding: '0.9rem',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-  },
   backLink: {
     display: 'block',
     textAlign: 'center',
@@ -1232,28 +1219,6 @@ const styles = {
     fontSize: '0.78rem',
     fontWeight: '800',
   },
-  clientOptionsBox: {
-    backgroundColor: 'rgba(9, 13, 22, 0.6)',
-    borderRadius: '12px',
-    padding: '1rem 1.25rem',
-    textAlign: 'left',
-    marginBottom: '1.5rem',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-  },
-  clientOptionsTitle: {
-    margin: '0 0 0.5rem 0',
-    fontSize: '0.82rem',
-    fontWeight: '800',
-    color: '#cbd5e1',
-    textTransform: 'uppercase',
-  },
-  clientOptionsList: {
-    margin: 0,
-    paddingLeft: '1.2rem',
-    color: '#94a3b8',
-    fontSize: '0.88rem',
-    lineHeight: '1.6',
-  },
   deniedActions: {
     display: 'flex',
     flexDirection: 'column',
@@ -1287,7 +1252,6 @@ const styles = {
     cursor: 'pointer',
     marginTop: '0.5rem',
   },
-  // Modal confirm delete
   confirmOverlay: {
     position: 'fixed',
     inset: 0,

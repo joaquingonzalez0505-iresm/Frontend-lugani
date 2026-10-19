@@ -20,8 +20,16 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
+  // Inicialización mejorada para asegurar la recuperación del token
   const [token, setToken] = useState(() => {
-    return localStorage.getItem("token") || "";
+    const savedToken = localStorage.getItem("token");
+    if (savedToken) return savedToken;
+    try {
+      const savedUser = localStorage.getItem("user");
+      return savedUser ? JSON.parse(savedUser).token || "" : "";
+    } catch {
+      return "";
+    }
   });
 
   const login = async (email, password) => {

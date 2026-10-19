@@ -12,7 +12,6 @@ export default function Login() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rol, setRol] = useState("cliente");
   const [aceptoTratamiento, setAceptoTratamiento] = useState(true);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -38,17 +37,13 @@ export default function Login() {
           nombre,
           email,
           password,
-          rol,
+          rol: "cliente", // 🔒 Siempre rol cliente
           acepto_tratamiento: aceptoTratamiento,
         });
 
         if (res.success) {
           success(`🎉 ¡Cuenta creada con éxito! Bienvenido, ${nombre}`);
-          if (res.user?.es_admin || rol === "admin") {
-            navigate("/admin");
-          } else {
-            navigate("/");
-          }
+          navigate("/");
         } else {
           setError(res.error || "No se pudo crear la cuenta.");
           toastError(res.error || "No se pudo crear la cuenta.");
@@ -85,7 +80,6 @@ export default function Login() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Brand header */}
         <div style={styles.brandBadge}>
           <span>✨ STICKER LAB AUTH</span>
         </div>
@@ -95,11 +89,10 @@ export default function Login() {
         </h2>
         <p style={styles.subtitle}>
           {esRegistro
-            ? "Únete para comprar stickers o acceder como Administrador"
+            ? "Únete para comprar tus stickers favoritos"
             : "Ingresa tus credenciales para acceder a tu cuenta"}
         </p>
 
-        {/* Tab Switcher */}
         <div style={styles.modeSwitcher}>
           <button
             type="button"
@@ -166,35 +159,18 @@ export default function Login() {
           </div>
 
           {esRegistro && (
-            <>
-              <div style={styles.field}>
-                <label style={styles.label}>Rol de Usuario *</label>
-                <select
-                  value={rol}
-                  onChange={(e) => setRol(e.target.value)}
-                  style={styles.select}
-                >
-                  <option value="cliente">Cliente (Compras y Pedidos)</option>
-                  <option value="admin">Administrador (Gestión Total)</option>
-                </select>
-                <span style={styles.hintText}>
-                  💡 Puedes seleccionar Administrador para probar el panel de control.
-                </span>
-              </div>
-
-              <div style={styles.checkboxGroup}>
-                <input
-                  type="checkbox"
-                  id="consentimiento_check"
-                  checked={aceptoTratamiento}
-                  onChange={(e) => setAceptoTratamiento(e.target.checked)}
-                  style={styles.checkbox}
-                />
-                <label htmlFor="consentimiento_check" style={styles.checkboxLabel}>
-                  Acepto el tratamiento de datos personales conforme a la ley de privacidad vigente. *
-                </label>
-              </div>
-            </>
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="consentimiento_check"
+                checked={aceptoTratamiento}
+                onChange={(e) => setAceptoTratamiento(e.target.checked)}
+                style={styles.checkbox}
+              />
+              <label htmlFor="consentimiento_check" style={styles.checkboxLabel}>
+                Acepto el tratamiento de datos personales conforme a la ley de privacidad vigente. *
+              </label>
+            </div>
           )}
 
           <button
@@ -209,8 +185,8 @@ export default function Login() {
             {cargando
               ? "Procesando solicitud..."
               : esRegistro
-              ? "Crear Cuenta"
-              : "Iniciar Sesión"}
+                ? "Crear Cuenta"
+                : "Iniciar Sesión"}
           </button>
         </form>
 
@@ -281,7 +257,7 @@ const styles = {
     border: "none",
     color: "#94a3b8",
     padding: "0.55rem",
-    borderRadius: "9px",
+    borderRadius: "999px",
     fontWeight: "700",
     fontSize: "0.88rem",
     cursor: "pointer",
@@ -325,22 +301,6 @@ const styles = {
     fontSize: "0.92rem",
     outline: "none",
     fontFamily: "inherit",
-  },
-  select: {
-    backgroundColor: "rgba(9, 13, 22, 0.8)",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    borderRadius: "10px",
-    padding: "0.7rem 0.9rem",
-    color: "#ffffff",
-    fontSize: "0.92rem",
-    outline: "none",
-    fontFamily: "inherit",
-    cursor: "pointer",
-  },
-  hintText: {
-    fontSize: "0.75rem",
-    color: "#94a3b8",
-    marginTop: "0.2rem",
   },
   checkboxGroup: {
     display: "flex",

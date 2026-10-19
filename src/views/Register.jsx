@@ -11,7 +11,6 @@ export function Register() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState('cliente');
   const [aceptoTratamiento, setAceptoTratamiento] = useState(true);
 
   const [error, setError] = useState(null);
@@ -34,16 +33,12 @@ export function Register() {
         email,
         password,
         acepto_tratamiento: aceptoTratamiento,
-        rol,
+        rol: 'cliente', // 🔒 Registro bloqueado siempre a rol Cliente
       });
 
       if (res.success) {
         success(`🎉 ¡Cuenta creada con éxito! Bienvenido, ${nombre}`);
-        if (res.user?.es_admin || rol === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/');
-        }
+        navigate('/');
       } else {
         setError(res.error || 'Error al registrar usuario.');
         toastError(res.error || 'Error al registrar usuario.');
@@ -105,21 +100,6 @@ export function Register() {
               placeholder="••••••••"
               style={styles.input}
             />
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>Tipo de Usuario / Rol</label>
-            <select
-              value={rol}
-              onChange={(e) => setRol(e.target.value)}
-              style={styles.select}
-            >
-              <option value="cliente">Cliente (Catálogo y Compras)</option>
-              <option value="admin">Administrador (Gestor Completo CRUD)</option>
-            </select>
-            <span style={styles.hintText}>
-              💡 Podés elegir Administrador para evaluar el panel de control.
-            </span>
           </div>
 
           {/* Checkbox obligatorio de Aceptación de Tratamiento de Datos */}
@@ -234,21 +214,6 @@ const styles = {
     color: '#ffffff',
     fontSize: '0.92rem',
     outline: 'none',
-  },
-  select: {
-    padding: '0.7rem 0.9rem',
-    borderRadius: '10px',
-    border: '1px solid rgba(255, 255, 255, 0.12)',
-    backgroundColor: 'rgba(9, 13, 22, 0.8)',
-    color: '#ffffff',
-    fontSize: '0.92rem',
-    outline: 'none',
-    cursor: 'pointer',
-  },
-  hintText: {
-    fontSize: '0.75rem',
-    color: '#94a3b8',
-    marginTop: '0.2rem',
   },
   checkboxGroup: {
     display: 'flex',

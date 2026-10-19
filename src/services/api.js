@@ -1,27 +1,27 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
 
-export const INITIAL_PRODUCTOS = [
-  {
-    id: 1,
-    nombre: 'Teclado Inalámbrico',
-    precio_final: 45000,
-    cuotas_cantidad: 6,
-    cuotas_valor: 7500,
-    garantia_meses: 12,
-    stock: 15,
-  },
-  {
-    id: 2,
-    nombre: 'Teclado Inalámbrico',
-    precio_final: 45000,
-    cuotas_cantidad: 6,
-    cuotas_valor: 7500,
-    garantia_meses: 12,
-    stock: 15,
-  },
-];
+export const INITIAL_PRODUCTOS = [];
 
-export async function getProductos({ page = 0, limit = 12, nombre = "" } = {}) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Normalizador de Payload exacto para el esquema FastAPI / SQLite de Render
+// ─────────────────────────────────────────────────────────────────────────────
+function buildProductoPayload(raw) {
+  const precioFinal = Number(raw.precio_final ?? raw.precio ?? 0);
+  const cuotasCant = Number(raw.cuotas_cantidad ?? raw.cant_cuotas ?? 1) || 1;
+  const imgUrl = String(raw.imagen_url || raw.imagen || "").trim();
+
+  return {
+    nombre: String(raw.nombre || "").trim(),
+    descripcion: String(raw.descripcion || raw.nombre || "").trim(),
+    precio_final: precioFinal,
+    cuotas_cantidad: cuotasCant,
+    stock: Number(raw.stock ?? 0),
+    imagen_url: imgUrl || null,
+    imagen: imgUrl || null,
+  };
+}
+
+export async function getProductos({ page = 0, limit = 100, nombre = "" } = {}) {
   try {
     const skip = page * limit;
     const params = new URLSearchParams({
@@ -33,59 +33,166 @@ export async function getProductos({ page = 0, limit = 12, nombre = "" } = {}) {
       params.append("nombre", nombre.trim());
     }
 
-    const response = await fetch(`${BASE_URL}/productos/?${params.toString()}`);
+    let response = await fetch(`${BASE_URL}/productos/?${params.toString()}`);
+    if (response.status === 404) {
+      response = await fetch(`${BASE_URL}/productos?${params.toString()}`);
+    }
+
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`);
     }
-    return await response.json();
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.items || data.productos || []);
   } catch (error) {
-    console.warn("Backend no alcanzable, retornando datos por defecto:", error);
-    return INITIAL_PRODUCTOS;
+    console.error("Error al obtener productos reales del backend de Render:", error);
+    return [];
   }
 }
 
 export async function crearProducto(prodPayload, token) {
   try {
+    const authToken = token || localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
+
+    const safePayload = buildProductoPayload(prodPayload);
+
     const response = await fetch(`${BASE_URL}/productos/`, {
       method: "POST",
       headers,
-      body: JSON.stringify(prodPayload),
+      body: JSON.stringify(safePayload),
     });
 
     if (!response.ok) {
-      throw new Error(`Error al crear producto: ${response.status}`);
+      let errorDetail = `Error al crear producto: ${response.status}`;
+      try {
+        const errBody = await response.json();
+        if (errBody.detail) {
+          errorDetail = Array.isArray(errBody.detail)
+            ? errBody.detail.map(e => `Campo '${e.loc?.join(".")}': ${e.msg}`).join(" | ")
+            : String(errBody.detail);
+        }
+      } catch (_) { }
+      throw new Error(errorDetail);
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error en crearProducto:", error);
+    console.error("[crearProducto] Error:", error);
     throw error;
   }
 }
 
 export async function actualizarProducto(id, prodPayload, token) {
   try {
+    const authToken = token || localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
-    const response = await fetch(`${BASE_URL}/productos/${id}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(prodPayload),
-    });
 
-    if (!response.ok) {
-      throw new Error(`Error al actualizar producto: ${response.status}`);
+    const safePayload = buildProductoPayload(prodPayload);
+    const candidateUrls = [
+      `${BASE_URL}/productos/${id}`,
+      `${BASE_URL}/productos/${id}/`,
+      `${BASE_URL}/producto/${id}`,
+      `${BASE_URL}/producto/${id}/`,
+    ];
+
+    let response = null;
+    let lastErrorDetail = null;
+
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(safePayload),
+        });
+
+        if (res.ok) {
+          return await res.json();
+        }
+
+        response = res;
+        try {
+          const errData = await res.json();
+          if (errData.detail) {
+            lastErrorDetail = Array.isArray(errData.detail)
+              ? errData.detail.map(e => `Campo '${e.loc?.join(".")}': ${e.msg}`).join(" | ")
+              : String(errData.detail);
+          }
+        } catch (_) { }
+
+        if (res.status !== 404) {
+          break;
+        }
+      } catch (_) { }
     }
 
-    return await response.json();
+    const errorMsg = lastErrorDetail || `Error ${response?.status || 404} al actualizar producto #${id}`;
+    throw new Error(errorMsg);
   } catch (error) {
-    console.error("Error en actualizarProducto:", error);
+    console.error("[actualizarProducto] Error:", error);
+    throw error;
+  }
+}
+
+export async function eliminarProducto(id, token) {
+  try {
+    const authToken = token || localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    };
+
+    const candidateUrls = [
+      `${BASE_URL}/productos/${id}`,
+      `${BASE_URL}/productos/${id}/`,
+      `${BASE_URL}/producto/${id}`,
+      `${BASE_URL}/producto/${id}/`,
+    ];
+
+    let response = null;
+    let lastErrorDetail = null;
+
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url, {
+          method: "DELETE",
+          headers,
+        });
+
+        if (res.ok || res.status === 200 || res.status === 204) {
+          return await res.json().catch(() => ({ success: true, id }));
+        }
+
+        // 404 → el producto ya no existe en la BD: se considera borrado exitoso
+        if (res.status === 404) {
+          return { success: true, id };
+        }
+
+        response = res;
+        try {
+          const errData = await res.json();
+          if (errData.detail) {
+            lastErrorDetail = Array.isArray(errData.detail)
+              ? errData.detail.map(e => `Campo '${e.loc?.join(".")}': ${e.msg}`).join(" | ")
+              : String(errData.detail);
+          }
+        } catch (_) { }
+
+        break;
+      } catch (_) { }
+    }
+
+    const errorMsg = lastErrorDetail || `Error ${response?.status || 404} al eliminar producto #${id}`;
+    throw new Error(errorMsg);
+  } catch (error) {
+    console.error("Error en eliminarProducto:", error);
     throw error;
   }
 }
@@ -94,7 +201,9 @@ export async function subirImagenProducto(file, token) {
   try {
     const formData = new FormData();
     formData.append("archivo", file);
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+
     const response = await fetch(`${BASE_URL}/productos/upload-imagen`, {
       method: "POST",
       headers,
@@ -114,16 +223,13 @@ export async function subirImagenProducto(file, token) {
 
 export async function loginUser(credentials, password) {
   try {
-    const payload =
-      typeof credentials === "object" && credentials !== null
-        ? credentials
-        : { email: credentials, password };
+    const payload = typeof credentials === "object" && credentials !== null
+      ? credentials
+      : { email: credentials, password };
 
     const response = await fetch(`${BASE_URL}/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -142,9 +248,7 @@ export async function registerUser(userData) {
   try {
     const response = await fetch(`${BASE_URL}/register`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
     });
 
@@ -161,10 +265,9 @@ export async function registerUser(userData) {
 
 export async function getPerfil(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = await fetch(`${BASE_URL}/perfil`, {
-      headers,
-    });
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    const response = await fetch(`${BASE_URL}/perfil`, { headers });
 
     if (!response.ok) {
       throw new Error(`Error al obtener perfil: ${response.status}`);
@@ -179,7 +282,8 @@ export async function getPerfil(token) {
 
 export async function getMisDatos(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const response = await fetch(`${BASE_URL}/usuarios/me`, { headers });
 
     if (!response.ok) {
@@ -193,35 +297,11 @@ export async function getMisDatos(token) {
   }
 }
 
-export async function actualizarPerfil(userData, token) {
-  try {
-    const headers = {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const response = await fetch(`${BASE_URL}/perfil`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error al actualizar perfil: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error en actualizarPerfil:", error);
-    throw error;
-  }
-}
-
 export async function exportarMisDatos(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = await fetch(`${BASE_URL}/usuarios/exportar`, {
-      headers,
-    });
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    const response = await fetch(`${BASE_URL}/usuarios/exportar`, { headers });
 
     if (!response.ok) {
       throw new Error(`Error al exportar datos: ${response.status}`);
@@ -236,7 +316,8 @@ export async function exportarMisDatos(token) {
 
 export async function eliminarCuenta(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const response = await fetch(`${BASE_URL}/usuarios/me`, {
       method: "DELETE",
       headers,
@@ -255,9 +336,10 @@ export async function eliminarCuenta(token) {
 
 export async function crearPedido(pedidoData, token) {
   try {
+    const authToken = token || localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
     const response = await fetch(`${BASE_URL}/pedidos/`, {
       method: "POST",
@@ -278,7 +360,8 @@ export async function crearPedido(pedidoData, token) {
 
 export async function getMisPedidos(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const response = await fetch(`${BASE_URL}/pedidos/`, { headers });
 
     if (!response.ok) {
@@ -294,9 +377,10 @@ export async function getMisPedidos(token) {
 
 export async function revocarPedido(pedidoId, token) {
   try {
+    const authToken = token || localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
     const response = await fetch(`${BASE_URL}/pedidos/${pedidoId}/revocar`, {
       method: "POST",
@@ -314,30 +398,10 @@ export async function revocarPedido(pedidoId, token) {
   }
 }
 
-export async function eliminarProducto(id, token) {
-  try {
-    const headers = {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const response = await fetch(`${BASE_URL}/productos/${id}`, {
-      method: "DELETE",
-      headers,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error al eliminar producto: ${response.status}`);
-    }
-
-    return await response.json().catch(() => ({ success: true, id }));
-  } catch (error) {
-    console.error("Error en eliminarProducto:", error);
-    throw error;
-  }
-}
-
 export async function getPedidosAdmin(token) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authToken = token || localStorage.getItem("token");
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
     const response = await fetch(`${BASE_URL}/pedidos/`, { headers });
 
     if (!response.ok) {

@@ -11,25 +11,18 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
   const fileInputRef = useRef(null);
 
   const [nombre, setNombre] = useState(productoEditar?.nombre || '');
+  const [descripcion, setDescripcion] = useState(productoEditar?.descripcion || '');
   const [precioFinal, setPrecioFinal] = useState(productoEditar?.precio_final || '');
-  const [cuotasCantidad, setCuotasCantidad] = useState(productoEditar?.cuotas_cantidad || 3);
-  const [cuotasValor, setCuotasValor] = useState(productoEditar?.cuotas_valor || 0);
-  const [garantiaMeses, setGarantiaMeses] = useState(productoEditar?.garantia_meses || 12);
+  const [cuotasCantidad, setCuotasCantidad] = useState(productoEditar?.cuotas_cantidad ?? 3);
   const [stock, setStock] = useState(productoEditar?.stock ?? 50);
-  const [imagenUrl, setImagenUrl] = useState(productoEditar?.imagen || productoEditar?.imagen_url || '');
+  const [imagenUrl, setImagenUrl] = useState(productoEditar?.imagen_url || productoEditar?.imagen || '');
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [subiendo, setSubiendo] = useState(false);
 
-  // Auto calculate cuota value if price changes and cuotasValor is 0 or proportional
-  useEffect(() => {
-    if (precioFinal && cuotasCantidad > 0) {
-      const calc = (parseFloat(precioFinal) / cuotasCantidad).toFixed(2);
-      setCuotasValor(parseFloat(calc));
-    }
-  }, [precioFinal, cuotasCantidad]);
+  // (cuotas_valor y garantia_meses no forman parte del schema ProductoCreate de la API)
 
   // Preview generation & memory cleanup
   useEffect(() => {
@@ -84,22 +77,25 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
     setSubiendo(true);
 
     try {
-      let finalImagenPath = imagenUrl;
+      let finalImagenPath = imagenUrl.trim() || null;
 
       // Upload file with exact 'archivo' FormData field
       if (selectedFile) {
         const uploadRes = await subirImagenProducto(selectedFile, token);
-        finalImagenPath = uploadRes.url;
+        finalImagenPath = uploadRes.url || null;
       }
 
+      // ⚠️ Payload exacto según el schema ProductoCreate de FastAPI:
+      //   Requeridos: nombre (str), descripcion (str), precio_final (float)
+      //   Opcionales: cuotas_cantidad (int), stock (int), imagen_url (str|null)
+      //   Campos que NO existen en la API: cuotas_valor, garantia_meses, imagen
       const prodPayload = {
         nombre: nombre.trim(),
-        precio_final: parseFloat(precioFinal),
-        cuotas_cantidad: parseInt(cuotasCantidad, 10),
-        cuotas_valor: parseFloat(cuotasValor),
-        garantia_meses: parseInt(garantiaMeses, 10),
-        stock: parseInt(stock, 10),
-        imagen: finalImagenPath,
+        descripcion: descripcion.trim() || nombre.trim(), // descripcion es requerida
+        precio_final: Number(precioFinal),
+        cuotas_cantidad: Number(cuotasCantidad) || 3,
+        stock: Number(stock) || 0,
+        imagen_url: finalImagenPath,  // 'imagen_url' es el nombre exacto de la API
       };
 
       if (productoEditar && productoEditar.id) {
@@ -159,6 +155,19 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
             />
           </div>
 
+          {/* Descripción (requerida por el schema de la API) */}
+          <div style={styles.field}>
+            <label style={styles.label}>Descripción *</label>
+            <input
+              type="text"
+              required
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              style={styles.input}
+              placeholder="Ej: Sticker holográfico premium resistente al agua"
+            />
+          </div>
+
           {/* Precio y Stock */}
           <div style={styles.grid2}>
             <div style={styles.field}>
@@ -189,41 +198,17 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
             </div>
           </div>
 
-          {/* Cuotas y Garantía */}
-          <div style={styles.grid3}>
-            <div style={styles.field}>
-              <label style={styles.label}>Cant. Cuotas</label>
-              <input
-                type="number"
-                min="1"
-                max="24"
-                value={cuotasCantidad}
-                onChange={(e) => setCuotasCantidad(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>Valor Cuota ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={cuotasValor}
-                onChange={(e) => setCuotasValor(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>Garantía (Meses)</label>
-              <input
-                type="number"
-                min="0"
-                value={garantiaMeses}
-                onChange={(e) => setGarantiaMeses(e.target.value)}
-                style={styles.input}
-              />
-            </div>
+          {/* Cuotas (solo cant. cuotas existe en la API) */}
+          <div style={styles.field}>
+            <label style={styles.label}>Cantidad de Cuotas</label>
+            <input
+              type="number"
+              min="1"
+              max="24"
+              value={cuotasCantidad}
+              onChange={(e) => setCuotasCantidad(e.target.value)}
+              style={styles.input}
+            />
           </div>
 
           {/* Subida de Imagen con input file y URL alternativa */}

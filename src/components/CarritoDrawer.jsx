@@ -16,21 +16,19 @@ export default function CarritoDrawer() {
     vaciarCarrito,
   } = useCarrito();
 
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { success, error: toastError } = useToast();
 
   const [nombreCliente, setNombreCliente] = useState(user?.nombre || "");
   const [procesando, setProcesando] = useState(false);
   const [pedidoExitoso, setPedidoExitoso] = useState(false);
 
-  // Sync with auth user
+  // Sincroniza dinámicamente el nombre del cliente con el usuario actualmente autenticado
   useEffect(() => {
-    if (user?.nombre && !nombreCliente) {
-      setNombreCliente(user.nombre);
-    }
+    setNombreCliente(user?.nombre || "");
   }, [user]);
 
-  // Close on ESC key
+  // Cierra con la tecla ESC
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && mostrarModal) {
@@ -50,7 +48,7 @@ export default function CarritoDrawer() {
       return;
     }
 
-    const token = localStorage.getItem("token") || user?.token || user?.access_token;
+    const authToken = token || localStorage.getItem("token") || user?.token || user?.access_token;
     const clienteFinal = nombreCliente.trim() || user?.nombre || "Cliente Web";
 
     const pedidoData = {
@@ -72,8 +70,8 @@ export default function CarritoDrawer() {
         "Content-Type": "application/json",
       };
 
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
       }
 
       const response = await fetch(`${API_URL}/pedidos/`, {
@@ -114,16 +112,16 @@ export default function CarritoDrawer() {
 
   return (
     <div style={styles.overlay}>
-      {/* Backdrop */}
+      {/* Fondo oscuro */}
       <div
         style={styles.backdrop}
         onClick={() => setMostrarModal(false)}
         aria-hidden="true"
       />
 
-      {/* Slide-out Drawer */}
+      {/* Drawer deslizante */}
       <aside style={styles.drawer} role="dialog" aria-modal="true" aria-label="Carrito de compras">
-        {/* Header */}
+        {/* Cabecera */}
         <div style={styles.header}>
           <div style={styles.headerTitleRow}>
             <div style={styles.cartIconWrapper}>🛒</div>
@@ -145,13 +143,13 @@ export default function CarritoDrawer() {
           </button>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         {pedidoExitoso ? (
           <div style={styles.successBox}>
             <span style={styles.successEmoji}>🎉</span>
             <h3 style={styles.successTitle}>¡Pedido Confirmado!</h3>
             <p style={styles.successText}>
-              Tu orden ha sido registrada en la base de datos de Render. Podés verla en tu historial o consultarla en el Panel de Administrador.
+              Tu orden ha sido registrada en la base de datos de Render a nombre de <strong>{nombreCliente}</strong>.
             </p>
             <div style={styles.successPill}>Guardado en PostgreSQL</div>
           </div>
@@ -163,7 +161,7 @@ export default function CarritoDrawer() {
                   <span style={styles.emptyIcon}>🛍️</span>
                   <h4 style={styles.emptyTitle}>Tu carrito está vacío</h4>
                   <p style={styles.emptySubtitle}>
-                    Explora el catálogo y agrega tus stickers de devs favoritos.
+                    Explora el catálogo y agrega tus stickers favoritos.
                   </p>
                   <button
                     type="button"
@@ -179,7 +177,6 @@ export default function CarritoDrawer() {
                     const precioItem = Number(item.precio_final ?? item.precio ?? 0);
                     return (
                       <div key={item.id} style={styles.itemRow}>
-                        {/* Thumbnail */}
                         <div style={styles.itemImg}>
                           {item.imagen_url || item.imagen ? (
                             <img
@@ -200,7 +197,6 @@ export default function CarritoDrawer() {
                           )}
                         </div>
 
-                        {/* Info */}
                         <div style={styles.itemInfo}>
                           <h4 style={styles.itemName} title={item.nombre}>
                             {item.nombre}
@@ -241,7 +237,6 @@ export default function CarritoDrawer() {
                           </div>
                         </div>
 
-                        {/* Item Total */}
                         <div style={styles.itemSubtotal}>
                           ${(precioItem * item.cantidad).toLocaleString("es-AR")}
                         </div>
@@ -252,14 +247,13 @@ export default function CarritoDrawer() {
               )}
             </div>
 
-            {/* Footer with checkout form */}
+            {/* Formulario de Checkout */}
             {carrito.length > 0 && (
               <div style={styles.footer}>
                 <form onSubmit={handleRealizarPedido} style={styles.checkoutForm}>
-                  {/* Customer name */}
                   <div style={styles.fieldRow}>
                     <label style={styles.fieldLabel}>
-                      👤 Nombre del Cliente {user ? "(Autenticado)" : ""}
+                      👤 Comprador {user ? `(Logueado como ${user.nombre})` : ""}
                     </label>
                     <input
                       type="text"
@@ -271,7 +265,6 @@ export default function CarritoDrawer() {
                     />
                   </div>
 
-                  {/* Summary Breakdown */}
                   <div style={styles.summaryBox}>
                     <div style={styles.summaryRow}>
                       <span style={styles.summaryLabel}>Subtotal:</span>
@@ -292,7 +285,6 @@ export default function CarritoDrawer() {
                     </div>
                   </div>
 
-                  {/* Submit CTA */}
                   <button
                     type="submit"
                     disabled={procesando}
@@ -341,7 +333,6 @@ const styles = {
     backgroundColor: "rgba(9, 13, 22, 0.75)",
     backdropFilter: "blur(8px)",
     WebkitBackdropFilter: "blur(8px)",
-    animation: "fadeIn 0.25s ease",
   },
   drawer: {
     position: "relative",
@@ -354,7 +345,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     boxShadow: "-12px 0 35px rgba(0, 0, 0, 0.6)",
-    animation: "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
   },
   header: {
     padding: "1.25rem 1.5rem",
@@ -404,7 +394,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.15s ease",
   },
   body: {
     flex: 1,
@@ -632,7 +621,6 @@ const styles = {
     fontSize: "1rem",
     cursor: "pointer",
     boxShadow: "0 6px 18px rgba(16, 185, 129, 0.4)",
-    transition: "all 0.2s ease",
   },
   securityNotice: {
     margin: 0,
