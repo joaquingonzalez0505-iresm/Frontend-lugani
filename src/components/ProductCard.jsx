@@ -10,11 +10,11 @@ export default function ProductCard({ product }) {
 
   if (!product) return null;
 
-  const precioNum = Number(product.precio_final ?? product.precio ?? 0);
+  const precioNum = Number(product.precio_final ?? product.precio ?? product.precioFinal ?? 0);
   const precioFormateado = precioNum.toLocaleString("es-AR");
 
   // Format cuotas
-  const cuotasCant = product.cuotas_cantidad || 3;
+  const cuotasCant = Number(product.cuotas_cantidad ?? product.cuotas ?? 3) || 3;
   const cuotasVal = product.cuotas_valor
     ? Number(product.cuotas_valor).toLocaleString("es-AR")
     : (precioNum / cuotasCant).toFixed(0);

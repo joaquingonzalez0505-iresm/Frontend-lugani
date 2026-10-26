@@ -11,9 +11,9 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
   const fileInputRef = useRef(null);
 
   const [nombre, setNombre] = useState(productoEditar?.nombre || '');
-  const [descripcion, setDescripcion] = useState(productoEditar?.descripcion || '');
-  const [precioFinal, setPrecioFinal] = useState(productoEditar?.precio_final || '');
-  const [cuotasCantidad, setCuotasCantidad] = useState(productoEditar?.cuotas_cantidad ?? 3);
+  const [descripcion, setDescripcion] = useState(productoEditar?.descripcion || productoEditar?.description || '');
+  const [precio, setPrecio] = useState(productoEditar?.precio ?? productoEditar?.precio_final ?? productoEditar?.precioFinal ?? '');
+  const [cuotas, setCuotas] = useState(productoEditar?.cuotas ?? productoEditar?.cuotas_cantidad ?? 1);
   const [stock, setStock] = useState(productoEditar?.stock ?? 50);
   const [imagenUrl, setImagenUrl] = useState(productoEditar?.imagen_url || productoEditar?.imagen || '');
 
@@ -21,8 +21,6 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [subiendo, setSubiendo] = useState(false);
-
-  // (cuotas_valor y garantia_meses no forman parte del schema ProductoCreate de la API)
 
   // Preview generation & memory cleanup
   useEffect(() => {
@@ -77,25 +75,27 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
     setSubiendo(true);
 
     try {
-      let finalImagenPath = imagenUrl.trim() || null;
+      let urlImagen = imagenUrl.trim() || "";
 
       // Upload file with exact 'archivo' FormData field
       if (selectedFile) {
         const uploadRes = await subirImagenProducto(selectedFile, token);
-        finalImagenPath = uploadRes.url || null;
+        urlImagen = uploadRes.url || "";
       }
 
-      // ⚠️ Payload exacto según el schema ProductoCreate de FastAPI:
-      //   Requeridos: nombre (str), descripcion (str), precio_final (float)
-      //   Opcionales: cuotas_cantidad (int), stock (int), imagen_url (str|null)
-      //   Campos que NO existen en la API: cuotas_valor, garantia_meses, imagen
+      // Payload completo con todas las variantes requeridas por la API y tipos numéricos
       const prodPayload = {
-        nombre: nombre.trim(),
-        descripcion: descripcion.trim() || nombre.trim(), // descripcion es requerida
-        precio_final: Number(precioFinal),
-        cuotas_cantidad: Number(cuotasCantidad) || 3,
-        stock: Number(stock) || 0,
-        imagen_url: finalImagenPath,  // 'imagen_url' es el nombre exacto de la API
+        nombre: nombre,
+        descripcion: descripcion,
+        description: descripcion,
+        precio: Number(precio),
+        precio_final: Number(precio),
+        precioFinal: Number(precio),
+        stock: Number(stock),
+        cuotas: Number(cuotas || 1),
+        cuotas_cantidad: Number(cuotas || 1),
+        imagen_url: urlImagen || "",
+        imagen: urlImagen || "",
       };
 
       if (productoEditar && productoEditar.id) {
@@ -177,8 +177,8 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
                 step="0.01"
                 min="0"
                 required
-                value={precioFinal}
-                onChange={(e) => setPrecioFinal(e.target.value)}
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
                 style={styles.input}
                 placeholder="4500"
               />
@@ -198,15 +198,15 @@ export function AdminProductModal({ productoEditar, onClose, onSaveSuccess }) {
             </div>
           </div>
 
-          {/* Cuotas (solo cant. cuotas existe en la API) */}
+          {/* Cuotas */}
           <div style={styles.field}>
             <label style={styles.label}>Cantidad de Cuotas</label>
             <input
               type="number"
               min="1"
               max="24"
-              value={cuotasCantidad}
-              onChange={(e) => setCuotasCantidad(e.target.value)}
+              value={cuotas}
+              onChange={(e) => setCuotas(e.target.value)}
               style={styles.input}
             />
           </div>

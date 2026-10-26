@@ -53,7 +53,9 @@ export default function Login() {
 
         if (res.success) {
           success(`🎉 ¡Bienvenido/a ${res.user?.nombre || ""}!`);
-          if (res.user?.es_admin || res.user?.rol === "admin") {
+          const user = res.user;
+          const isAdmin = user?.rol === 'admin' || user?.role === 'admin' || user?.is_admin === true || user?.es_admin === true;
+          if (isAdmin) {
             navigate("/admin");
           } else {
             navigate("/");

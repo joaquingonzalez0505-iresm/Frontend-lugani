@@ -28,7 +28,13 @@ export default function Catalog() {
 
   const cargarProductos = () => {
     setCargando(true);
-    fetch(`${API_URL}/productos/`)
+    const token = localStorage.getItem("token") || "";
+    fetch(`${API_URL}/productos/`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (!res.ok) {
           throw new Error("Error en la respuesta del servidor");

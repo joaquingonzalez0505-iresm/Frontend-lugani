@@ -8,7 +8,8 @@ import { getProductos, eliminarProducto, getPedidosAdmin } from '../services/api
 const API_URL = import.meta.env.VITE_API_URL || "https://backend-frontend-g6ps.onrender.com";
 
 export default function AdminDashboard() {
-  const { user, token, esAdmin, login, logout } = useAuth();
+  const { user, token, esAdmin: authEsAdmin, isAdmin: authIsAdmin, login, logout } = useAuth();
+  const isAdmin = user?.rol === 'admin' || user?.role === 'admin' || user?.is_admin === true || user?.es_admin === true;
   const { success, error: toastError, info } = useToast();
   const navigate = useNavigate();
 
@@ -67,11 +68,11 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (esAdmin) {
+    if (isAdmin) {
       cargarProductos();
       cargarPedidos();
     }
-  }, [esAdmin, token, user]);
+  }, [isAdmin, token, user]);
 
   // Handler for Admin Login
   const handleAdminLogin = async (e) => {
@@ -82,10 +83,12 @@ export default function AdminDashboard() {
     try {
       const res = await login(adminEmail, adminPassword);
       if (res.success) {
-        if (!res.user?.es_admin && res.user?.rol !== 'admin') {
+        const loggedUser = res.user;
+        const isAdminLogged = loggedUser?.rol === 'admin' || loggedUser?.role === 'admin' || loggedUser?.is_admin === true || loggedUser?.es_admin === true;
+        if (!isAdminLogged) {
           setLoginError('Esta cuenta no posee rol de Administrador.');
         } else {
-          success(`¡Bienvenido al Panel, ${res.user.nombre}!`);
+          success(`¡Bienvenido al Panel, ${loggedUser.nombre || 'Administrador'}!`);
         }
       } else {
         setLoginError(res.error || 'Credenciales incorrectas.');
@@ -213,7 +216,7 @@ export default function AdminDashboard() {
   }
 
   // 2. SCENARIO: LOGGED IN AS REGULAR CLIENT -> Access Denied / Guard
-  if (user && !esAdmin) {
+  if (user && !isAdmin) {
     return (
       <div style={styles.accessContainer}>
         <div style={styles.deniedCard}>
@@ -403,7 +406,8 @@ export default function AdminDashboard() {
                         : `${API_URL}/${rawImg.replace(/^\//, '')}`)
                       : '';
 
-                    const precioNum = Number(prod.precio_final || prod.precio || 0);
+                    const precioNum = Number(prod.precio_final ?? prod.precio ?? prod.precioFinal ?? 0);
+                    const cuotasNum = Number(prod.cuotas_cantidad ?? prod.cuotas ?? 1) || 1;
 
                     return (
                       <tr key={prod.id} style={styles.tr}>
@@ -440,7 +444,7 @@ export default function AdminDashboard() {
 
                         <td style={styles.td}>
                           <span style={styles.cuotasBadge}>
-                            {prod.cuotas_cantidad || 1}x ${Number(prod.cuotas_valor || (precioNum / (prod.cuotas_cantidad || 1))).toFixed(0)}
+                            {cuotasNum}x ${Number(prod.cuotas_valor || (precioNum / cuotasNum)).toFixed(0)}
                           </span>
                         </td>
 

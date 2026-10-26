@@ -66,25 +66,24 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      const accessToken = data.access_token || data.token || "";
-      if (accessToken) {
-        localStorage.setItem("token", accessToken);
-        setToken(accessToken);
-      }
+      const response = { data };
+      localStorage.setItem('token', response.data.access_token || response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user || response.data.usuario || response.data));
 
-      const rawUser = data.user || data.usuario || data;
-      const esAdmin = Boolean(
-        rawUser.es_admin ||
-        rawUser.is_admin ||
-        rawUser.rol === "admin" ||
-        rawUser.role === "admin"
-      );
+      const accessToken = response.data.access_token || response.data.token || "";
+      setToken(accessToken);
+
+      const rawUser = response.data.user || response.data.usuario || response.data;
+      const isAdmin = rawUser?.rol === 'admin' || rawUser?.role === 'admin' || rawUser?.is_admin === true || rawUser?.es_admin === true;
 
       const usuarioCompleto = {
         ...rawUser,
         token: accessToken,
-        es_admin: esAdmin,
-        rol: rawUser.rol || (esAdmin ? "admin" : "cliente"),
+        es_admin: isAdmin,
+        is_admin: isAdmin,
+        isAdmin: isAdmin,
+        rol: rawUser.rol || (isAdmin ? "admin" : "cliente"),
+        role: rawUser.role || (isAdmin ? "admin" : "cliente"),
       };
 
       setUser(usuarioCompleto);
@@ -145,26 +144,27 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      const usuarioRegistrado = data.user || data.usuario || data;
-      const accessToken = data.access_token || data.token || "";
+      const response = { data };
+      localStorage.setItem('token', response.data.access_token || response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user || response.data.usuario || response.data));
+
+      const usuarioRegistrado = response.data.user || response.data.usuario || response.data;
+      const accessToken = response.data.access_token || response.data.token || "";
 
       if (accessToken) {
-        localStorage.setItem("token", accessToken);
         setToken(accessToken);
       }
 
-      const esAdmin = Boolean(
-        usuarioRegistrado.es_admin ||
-        usuarioRegistrado.is_admin ||
-        usuarioRegistrado.rol === "admin" ||
-        payload.rol === "admin"
-      );
+      const isAdmin = usuarioRegistrado?.rol === 'admin' || usuarioRegistrado?.role === 'admin' || usuarioRegistrado?.is_admin === true || usuarioRegistrado?.es_admin === true || payload.rol === 'admin';
 
       const usuarioCompleto = {
         ...usuarioRegistrado,
         token: accessToken,
-        es_admin: esAdmin,
-        rol: usuarioRegistrado.rol || (esAdmin ? "admin" : "cliente"),
+        es_admin: isAdmin,
+        is_admin: isAdmin,
+        isAdmin: isAdmin,
+        rol: usuarioRegistrado.rol || (isAdmin ? "admin" : "cliente"),
+        role: usuarioRegistrado.role || (isAdmin ? "admin" : "cliente"),
       };
 
       setUser(usuarioCompleto);
@@ -191,11 +191,11 @@ export const AuthProvider = ({ children }) => {
     setToken("");
   };
 
-  const esAdmin = Boolean(
-    user?.es_admin ||
-    user?.is_admin ||
-    user?.rol === "admin" ||
-    user?.role === "admin"
+  const isAdmin = Boolean(
+    user?.rol === 'admin' ||
+    user?.role === 'admin' ||
+    user?.is_admin === true ||
+    user?.es_admin === true
   );
 
   return (
@@ -203,7 +203,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         token,
-        esAdmin,
+        isAdmin,
+        esAdmin: isAdmin,
         login,
         register,
         logout,
